@@ -1,0 +1,6 @@
+{
+  "type": "winas",
+  "pipe": {
+    "baseURL": "https://abel.nodetribe.com"
+  }
+}
