@@ -339,10 +339,8 @@ const removeWhiteout =　({ dirPath, hash, fileUUID }, callback) => {
       if (Array.isArray(data)) {
         let index = data.find(x => x.uuid === fileUUID && x.hash === hash)
         if (index !== -1) {
-          if (data.length > 1) {
-            let p = data.splice(index, 1)
-            write(data, targetPath, false, mtime, err => err ? callback(err) : callback(null, p))
-          }
+          let p = data.splice(index, 1)
+          write(data, targetPath, false, mtime, err => err ? callback(err) : callback(null, p))
         } else
           return callback(null, null) 
       } else {
