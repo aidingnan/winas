@@ -26,6 +26,16 @@ class DirEntryApi {
     this.vfs.REMOVE(user, props, callback)
   }
 
+  // remove backup drive removed stub
+  removeWhiteout (user, dirProps, dataProps, callback) {
+    let props = Object.assign({}, dataProps, dirProps)
+    if (this.vfs.isBackupDrive(dirProps.driveUUID)) {
+      return this.vfs.backup.removeWhiteout(user, props, callback)
+    } else {
+      return callback(new Error('not found'))
+    }
+  }
+
   rename (user, dirProps, dataProps, callback) {
     let props = Object.assign({}, dataProps, dirProps)
     if (this.vfs.isBackupDrive(dirProps.driveUUID)) {
@@ -81,7 +91,8 @@ class DirEntryApi {
       addTags: this.addTags.bind(this, user, dirProps),
       removeTags: this.removeTags.bind(this, user, dirProps),
       setTags: this.setTags.bind(this, user, dirProps),
-      updateAttr: this.updateAttr.bind(this, user, dirProps) // backup add
+      updateAttr: this.updateAttr.bind(this, user, dirProps), // backup add
+      removeWhiteout: this.removeWhiteout.bind(this, user, dirProps) // backup add
     }
   }
 

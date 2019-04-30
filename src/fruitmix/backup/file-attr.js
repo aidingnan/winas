@@ -329,6 +329,31 @@ const createWhiteout = ({ dirPath, props }, callback) => {
 
 FUNCS.createWhiteout = createWhiteout
 
+const removeWhiteout =　({ dirPath, hash, fileUUID }, callback) => {
+  let targetPath = path.join(dirPath, '.whiteout.' + WO_UUID)
+  fs.lstat(targetPath, (err, stat) => {
+    if (err) return callback(err)
+    let mtime = stat.mtime.getTime()
+    readWhiteout(dirPath, (err, data) => {
+      if (err) return callback(err)
+      if (Array.isArray(data)) {
+        let index = data.find(x => x.uuid === fileUUID && x.hash === hash)
+        if (index !== -1) {
+          if (data.length > 1) {
+            let p = data.splice(index, 1)
+            write(data, targetPath, false, mtime, err => err ? callback(err) : callback(null, p))
+          }
+        } else
+          return callback(null, null) 
+      } else {
+        throw new Error('File Attr Not Array')
+      }
+    })
+  })
+}
+
+FUNCS.removeWhiteout = removeWhiteout
+
 const updateFileMeta = ({ dirPath, hash, attrs }, callback) => {
   fileMeta(path.join(dirPath, hash), (err, metadata) => {
     if (err) {
@@ -476,5 +501,6 @@ module.exports.COMMAND = {
   createDir: 'createDir',
   createFile: 'createFile',
   createFileAttr: 'createFileAttr',
-  createWhiteout: 'createWhiteout'
+  createWhiteout: 'createWhiteout',
+  removeWhiteout: 'removeWhiteout'
 }

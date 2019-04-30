@@ -56,6 +56,25 @@ class BACKUP {
     })
   }
 
+  removeWhiteout(user, props, callback) {
+    let { hash, fileUUID, driveUUID } = props
+    let drive = this.vfs.drives.find(d => d.uuid === driveUUID)
+    if (!drive || drive.isDeleted) return process.nextTick(() => callback(new Error('drive not found')))
+    if (drive.type !== 'backup') return process.nextTick(() => callback(new Error('not backup dir')))
+    this.vfs.DIR(user, props, (err, dir) => {
+      if (err) return callback(err)
+      if (hash && fileUUID) {
+        let args = { dirPath: dir.abspath(), hash, fileUUID }
+        fileAttr.call(fileAttr.COMMAND.removeWhiteout, args, err => {
+          if (err) return callback(err)
+          callback(null, {})
+        })
+      } else {
+        return callback(new Error('props incomplete'))
+      }
+    })
+  }
+
   // delete unused intermediate append file
   async deleteSameFpAsync(dirPath, dirUUID, fingerprint) {
     let xstats = (await readdirAsync(dirPath, dirUUID, null)).living

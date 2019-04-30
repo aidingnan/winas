@@ -272,7 +272,7 @@ class Parsing extends State {
             Object.assign(this.ctx.args, { metadata, bname, bmtime, bctime, archived, uuid })
             if (uuid && !isUUID(uuid)) throw new Error('invalid uuid')
           } 
-        } else if (op === 'remove') {
+        } else if (op === 'remove' || op === 'removeWhiteout') {
           Object.assign(this.ctx.args, { op, uuid, hash })
           if (uuid && !isUUID(uuid)) throw new Error('invalid uuid')
         } else if (op === 'addTags' || op === 'removeTags' || op === 'setTags') {
@@ -463,6 +463,17 @@ class Executing extends State {
 
         case 'remove':
           this.ctx.ctx.apis.remove({
+            name: args.toName,
+            uuid: args.uuid,
+            hash: args.hash,
+            fileUUID: args.uuid
+          }, err => err 
+            ? this.setState(Failed, err) 
+            : this.setState(Succeeded, null))
+          break
+
+        case 'removeWhiteout':
+          this.ctx.ctx.apis.removeWhiteout({
             name: args.toName,
             uuid: args.uuid,
             hash: args.hash,
