@@ -20,6 +20,7 @@ class BACKUP {
     return dir instanceof BDirectory
   }
 
+  // delete backup file and create a delete-stub
   delete(user, props, callback) {
     let { hash, fileUUID, name, driveUUID } = props
     let drive = this.vfs.drives.find(d => d.uuid === driveUUID)
@@ -56,6 +57,7 @@ class BACKUP {
     })
   }
 
+  // force delete delete-stub
   removeWhiteout(user, props, callback) {
     let { hash, fileUUID, driveUUID } = props
     let drive = this.vfs.drives.find(d => d.uuid === driveUUID)

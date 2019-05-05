@@ -81,11 +81,10 @@ class Reading extends Directory.prototype.Reading {
 
     // keep all file names
     // skip append intermediate file
-    // TODO: name <----> hash mapping
-    this.dir.unindexedFiles = xstats
-      .filter(x => x.type === 'file' && !x.metadata && !x.tags && !x.fingerprint )
-      .map(x => x.bname || x.name)
-      .sort()
+    // this.dir.unindexedFiles = xstats
+    //   .filter(x => x.type === 'file' && !x.metadata && !x.tags && !x.fingerprint )
+    //   .map(x => x.bname || x.name)
+    //   .sort()
 
     // remove non-interested files
     // xstats = xstats.filter(x => x.type === 'directory' || (x.type === 'file' && (typeof x.magic === 'string' || (Array.isArray(x.tags) && x.tags.length !== 0))))

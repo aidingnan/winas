@@ -1384,7 +1384,7 @@ class VFS extends EventEmitter {
           bctime: node.bctime,
           bmtime: node.bmtime,
         } 
-      } else { // string
+      } else { // string - unindexed file
         if (tags || types) return
         if (name && !node.toLowerCase().includes(name.toLowerCase())) return
         xstat = {
@@ -1439,39 +1439,6 @@ class VFS extends EventEmitter {
     return arr
   }
 
-  resolveUnindexedFiles (candidates, callback) {
-    let count = 0
-    candidates.forEach((xstat, index) => {
-      if (xstat.hasOwnProperty('uuid')) return 
-      count++
-      // FIXME: backup files named file hash, use name while error
-      let filePath = path.join(this.absolutePath(xstat.pdir), xstat.name)
-      fs.lstat(filePath, (err, stat) => {
-        if (err || !stat.isFile()) {
-          candidates[index] = null
-        } else {
-          candidates[index] = {
-            pdir: xstat.pdir.uuid,
-            type: 'file',
-            name: xstat.name,
-            size: stat.size,
-            mtime: stat.mtime.getTime(),
-            place: xstat.place,
-            namepath: xstat.namepath
-          }
-        }
-        if (!--count) callback(null, candidates.filter(x => !!x))
-      }) 
-    })
-
-    if (!count) process.nextTick(() => callback(null, candidates))
-  }
-
-  // TODO async is not necessary
-  async resolveUnindexedFilesAsync (candidates) {
-    return Promise.promisify(this.resolveUnindexedFiles).bind(this)(candidates) 
-  }
-
   // TODO async is not necessary
   async iterateTreeAsync (user, range, condition) {
     let count = range.count
@@ -1480,15 +1447,13 @@ class VFS extends EventEmitter {
 
     do {
       let candidates = this.iterateTreeSync(user, rng, condition)
-      if (candidates.length === 0) return arr
-      if (candidates.length < rng.count) 
-        return [...arr, ...await this.resolveUnindexedFilesAsync(candidates)]
+      if (candidates.length === 0 || candidates.length < rng.count) return arr
 
       let tail = candidates[candidates.length - 1]
 
       // preserve REAL tail
       rng = { lastIndex: tail.place, lastType: tail.type, lastPath: tail.namepath }
-      arr = [...arr, ...await this.resolveUnindexedFilesAsync(candidates)]
+      arr = [...arr]
       rng.count = count - arr.length
     } while (rng.count) 
 

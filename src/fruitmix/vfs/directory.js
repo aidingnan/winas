@@ -194,10 +194,10 @@ class Reading extends Base {
     this.dir.fileSize = xstats.filter(x => x.type === 'file').reduce((acc, f) => acc + f.size, 0)
 
     // keep all file names
-    this.dir.unindexedFiles = xstats
-      .filter(x => x.type === 'file' && !x.metadata && !x.tags)
-      .map(x => x.name)
-      .sort()
+    // this.dir.unindexedFiles = xstats
+    //   .filter(x => x.type === 'file' && !x.metadata && !x.tags)
+    //   .map(x => x.name)
+    //   .sort()
 
     // remove non-interested files
     // xstats = xstats.filter(x => x.type === 'directory' || (x.type === 'file' && (typeof x.magic === 'string' || (Array.isArray(x.tags) && x.tags.length !== 0))))
@@ -349,7 +349,7 @@ class Directory extends Node {
     super(ctx, parent, xstat)
 
     this.children = []
-    this.unindexedFiles = []
+    // this.unindexedFiles = []
 
     this.uuid = xstat.uuid
     this.name = xstat.name
@@ -478,11 +478,7 @@ class Directory extends Node {
       .filter(x => x instanceof File)
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    let files = [...indexedFiles, ...this.unindexedFiles].sort((a, b) => {
-      let a1 = typeof a === 'string' ? a : a.name
-      let b1 = typeof b === 'string' ? b : b.name
-      return a1.localeCompare(b1)
-    })
+    let files = indexedFiles
 
     if (!itor) {
       if (F(this)) return true
