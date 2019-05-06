@@ -1241,9 +1241,15 @@ class VFS extends EventEmitter {
       let range = { lastIndex, lastType, lastPath, count }
       let condition = { places, types, tags, name, fileOnly }
 
-      this.iterateTreeAsync(user, range, condition)
-        .then(arr => callback(null, arr))
-        .catch(e => callback(e))
+      setImmediate(() => {
+        let arr
+        try {
+          arr = this.iterateTreeSync(user, range, condition)
+          callback(null, arr)
+        }catch (e) {
+          callback(e)
+        }
+      })
     }
   }
 
@@ -1384,7 +1390,9 @@ class VFS extends EventEmitter {
           bctime: node.bctime,
           bmtime: node.bmtime,
         } 
-      } else { // string - unindexed file
+      }
+      /* unindexed-file name
+      else { // string - unindexed file
         if (tags || types) return
         if (name && !node.toLowerCase().includes(name.toLowerCase())) return
         xstat = {
@@ -1392,7 +1400,7 @@ class VFS extends EventEmitter {
           type: 'file',
           name: node,
         }
-      }
+      }*/
 
       if (xstat) {
         let nodepath, namepath
@@ -1435,27 +1443,6 @@ class VFS extends EventEmitter {
         }
       }
     }
-
-    return arr
-  }
-
-  // TODO async is not necessary
-  async iterateTreeAsync (user, range, condition) {
-    let count = range.count
-    let arr = []
-    let rng = range
-
-    do {
-      let candidates = this.iterateTreeSync(user, rng, condition)
-      if (candidates.length === 0 || candidates.length < rng.count) return arr
-
-      let tail = candidates[candidates.length - 1]
-
-      // preserve REAL tail
-      rng = { lastIndex: tail.place, lastType: tail.type, lastPath: tail.namepath }
-      arr = [...arr]
-      rng.count = count - arr.length
-    } while (rng.count) 
 
     return arr
   }
