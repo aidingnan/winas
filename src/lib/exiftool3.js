@@ -66,7 +66,13 @@ class ExifTool {
     let { file, args, callback } = this.reqs.shift()
 
     this.spawn.stdin.write('-S\n')
-    args.forEach(arg => this.spawn.stdin.write(`-${arg}\n`))
+    // FIX Orientation bug
+    args.forEach(arg => {
+      if (arg === 'Orientation')
+        arg = arg + '#'
+      this.spawn.stdin.write(`-${arg}\n`)
+    })
+    
     this.spawn.stdin.write(`${file}\n`)
     this.spawn.stdin.write('-execute\n')
 
