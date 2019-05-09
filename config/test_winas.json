@@ -16,6 +16,6 @@
 
   },
   "pipe": {
-    "baseURL": "https://test.nodetribe.com"
+    "baseURL": "http://ec2-52-80-148-180.cn-north-1.compute.amazonaws.com.cn:12345"
   }
 }
