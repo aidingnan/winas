@@ -33,7 +33,7 @@ class UdevMonitor extends EventEmitter {
       let action = split[2]
       let blkpath = split[3]
       debug('*********************************')
-      debug('********　Udev Message ***********')
+      debug('********  Udev Message  *********')
       debug('*********************************')
       debug(t)
       this.emit('update', {action, blkpath})

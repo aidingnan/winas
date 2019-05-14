@@ -551,8 +551,14 @@ class VFS extends EventEmitter {
   @param {object} props.sha256 -data sha256
   */
   APPEND (user, props, callback) {
+    let cb = (...args) => {
+      if (props.data) {
+        rimraf(props.data, () => {})
+      }
+      return callback(...args)
+    }
     this.DIR(user, props, (err, dir) => {
-      if (err) return callback(err) 
+      if (err) return cb(err) 
 
       let { name, hash, data, size, sha256 } = props
 
@@ -560,28 +566,28 @@ class VFS extends EventEmitter {
       readXstat(target, (err, xstat) => {
         if (err) {
           if (err.code === 'ENOENT' || err.code === 'EISDIR' || err.xcode === 'EUNSUPPORTED') err.status = 403
-          return callback(err)
+          return cb(err)
         }
 
         if (xstat.type !== 'file') {
           let err = new Error('not a file')
           err.code = 'EISDIR'
           err.status = 403
-          return callback(err)
+          return cb(err)
         }
 
         if (xstat.size % (1024 * 1024 * 1024) !== 0) {
           let err = new Error('not a multiple of 1G')
           err.code = 'EALIGN' // kernel use EINVAL for non-alignment of sector size
           err.status = 403
-          return callback(err)
+          return cb(err)
         }
 
         if (xstat.hash !== hash) {
           let err = new Error(`hash mismatch, actual: ${xstat.hash}`)
           err.code = 'EHASHMISMATCH' 
           err.status = 403
-          return callback(err)
+          return cb(err)
         }
 
         let tmp = this.TMPFILE() 
@@ -589,15 +595,18 @@ class VFS extends EventEmitter {
         // concat target and data to a tmp file
         // TODO sync before op
         btrfsConcat(tmp, [target, data], err => {
-          if (err) return callback(err)
+          if (err) return cb(err)
+
+          // clean tmp data
+          rimraf(data, () => {})
 
           fs.lstat(target, (err, stat) => {
-            if (err) return callback(err)
+            if (err) return cb(err)
             if (stat.mtime.getTime() !== xstat.mtime) {
               let err = new Error('race detected')
               err.code = 'ERACE'
               err.status = 403
-              return callback(err)
+              return cb(err)
             }
 
             const combineHash = (a, b) => {
@@ -614,11 +623,11 @@ class VFS extends EventEmitter {
               uuid: xstat.uuid, 
               hash: xstat.size === 0 ? sha256 : combineHash(hash, sha256)
             }, (err, xstat2) => {
-              if (err) return callback(err)
+              if (err) return cb(err)
 
               // TODO dirty
               xstat2.name = name
-              fs.rename(tmp, target, err => err ? callback(err) : callback(null, xstat2))
+              fs.rename(tmp, target, err => err ? cb(err) : cb(null, xstat2))
             })
           })
         })
