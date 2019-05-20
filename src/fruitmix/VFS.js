@@ -1412,11 +1412,6 @@ class VFS extends EventEmitter {
     }
 
     process.nextTick(() => callback(err, data))
-  }  
-
-  getFileByUUID (user, props, callback) {
-
-    console.log(props)
   }
 
   dirFormat (user, props, callback) {
