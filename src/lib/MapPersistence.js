@@ -41,6 +41,30 @@ class MapPersistent {
     this.lock = new Map()
   }
 
+  cacheAdd(k, v) {
+    let idx = this.cacheA.findIndex(x => x === k)
+    if (idx !== -1) { // move to last
+      this.cacheA.splice(idx, 1)
+      this.cacheA.push(k)
+      return
+    }
+    // clean cache
+    if (this.cacheA.length >= this.cacheSize) {
+      let tmp = this.cacheA.slice(0, this.cacheA.length - this.cacheSize + 1)
+      tmp.forEach(x => this.cacheM.delete(x))
+    }
+    this.cacheA.push(k)
+    this.cacheM.set(k, v)
+  }
+
+  // remove cache
+  cacheRemove(k) {
+    let idx = this.cacheA.findIndex(x => x === k)
+    if (idx === -1) return
+    this.cacheA.splice(idx, 1)
+    this.cacheM.delete(k)
+  }
+
   // lock same CRUD path
   call(command, { k, v }, callback) {
     let lockKey = k.slice(0, this.prefixLength)
@@ -109,7 +133,7 @@ class MapPersistent {
       let tmp = path.join(this.tmpdir, uuid.v4())
       fs.writeFile(tmp, JSON.stringify(data), err => err ? callback(err)
         : fs.rename(tmp, path.join(this.workdir, k.slice(0, this.prefixLength)), err => err ? callback(err)
-        : callback(null, null)))
+        : (this.cacheAdd(k, v), callback(null, null))))
     })
   }
 
@@ -132,7 +156,7 @@ class MapPersistent {
       let tmp = path.join(this.tmpdir, uuid.v4())
       fs.writeFile(tmp, JSON.stringify(data), err => err ? callback(err)
         : fs.rename(tmp, path.join(this.workdir, k.slice(0, this.prefixLength)), err => err ? callback(err)
-        : callback(null, null)))
+        : (this.cacheAdd(k, v), callback(null, null))))
     })
   }
 
@@ -155,13 +179,17 @@ class MapPersistent {
       let tmp = path.join(this.tmpdir, uuid.v4())
       fs.writeFile(tmp, JSON.stringify(data), err => err ? callback(err)
         : fs.rename(tmp, path.join(this.workdir, k.slice(0, this.prefixLength)), err => err ? callback(err)
-        : callback(null, null)))
+        : (this.cacheRemove(k), callback(null, null))))
     })
   }
 
   get ({ k }, callback) {
     if (!k || typeof k !== 'string' || k.length < this.prefixLength)
       return process.nextTick(() => callback(new Error('illegal k:' + k)))
+    if (this.cacheM.has(k)) {
+      let v = this.cacheM.get(k)
+      return process.nextTick(() => callback(null, v))
+    }
     this.call('_get', { k }, callback)
   }
 
@@ -174,6 +202,7 @@ class MapPersistent {
     this._read(k, (err, data) => {
       if (err) return callback(err)
       let d = data.find(x => x.k === k)
+      if (d) this.cacheAdd(k, d)
       return callback(null, d)
     })
   }
