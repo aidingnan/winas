@@ -24,15 +24,17 @@ const DEFAULT_PREFIX_LENGTH = 4
  * @param opts.valueType - value type default json
  * @param opts.prefixLength - prefix length
  * @param opts.sortFunc - sort founction
+ * @param opts.dataFunc - generate new data / vaild data
  */
 class MapPersistent {
   constructor(dir, tmp, opts = {}) {
 
     this.workdir = dir
     this.tmpdir = tmp
-    this.cacheSize = opts.cacheSize || DEFAULT_CACHE_SIZE
-    this.prefixLength = opts.prefixLength || DEFAULT_PREFIX_LENGTH
+    this.cacheSize = opts.cacheSize > 0 ? opts.cacheSize : DEFAULT_CACHE_SIZE
+    this.prefixLength = opts.prefixLength > 0 ? opts.prefixLength : DEFAULT_PREFIX_LENGTH
     this.sortFunc = opts.sortFunc
+    this.dataFunc = opts.dataFunc
     // limited cache
     this.cacheA = []
     // use map for quick search
