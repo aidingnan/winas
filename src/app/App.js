@@ -100,8 +100,6 @@ class App extends EventEmitter {
         }
       } catch(e) {}
 
-      this.device = new Device(this)
-
       this.boot = new Boot({ configuration, fruitmixOpts })
 
       Object.defineProperty(this, 'fruitmix', { get () { return this.boot.fruitmix } })
@@ -116,7 +114,6 @@ class App extends EventEmitter {
       fruitmix: () => this.fruitmix,
       config: this.cloudConf,
       boot: this.boot,
-      device: this.device,
       deviceSN: () => this.deviceSN
     }
 
@@ -145,6 +142,7 @@ class App extends EventEmitter {
         : this.handleMessage.bind(this))
   }
 
+  // FOR NEW WISNUC Application
   handleWinasMessage (msg) {
     let message
     try {
@@ -175,6 +173,7 @@ class App extends EventEmitter {
     }
   }
 
+  // For N2 Device (deprecated api)
   handleMessage (msg) {
     let message
     try {
@@ -272,21 +271,6 @@ class App extends EventEmitter {
     let tokenr = createTokenRouter(this.auth)
     routers.push(['/token', tokenr])
 
-    // boot router
-    let devicer = express.Router()
-
-    devicer.get('/', (req, res, next) => res.status(200).json(this.device.view()))
-    devicer.get('/cpuInfo', (req, res) => (res.nolog = true, this.device.cpuInfo((err, data) => err ? next(err): res.status(200).json(data))))
-    devicer.get('/memInfo', (req, res, next) => (res.nolog = true, this.device.memInfo((err, data) => err ? next(err) : res.status(200).json(data))))
-    devicer.get('/speed', (req, res, next) => res.status(200).json(this.device.netDev()))
-    devicer.get('/timedate', (req, res, next) => this.device.timedate((err, data) => err ? next(err) : res.status(200).json(data)))
-    devicer.get('/net', (req, res, next) => this.device.interfaces((err, its) => err ? next(err) : res.status(200).json(its)))
-    // devicer.post('/net', (req, res, next) => this.device.addAliases(req.body, (err, data) => err ? next(err) : res.status(200).json(data)))
-    // devicer.delete('/net/:name', (req, res, next) => this.device.deleteAliases(req.params.name, (err, data) => err ? next(err) : res.status(200).json(data)))
-    devicer.get('/sleep', (req, res, next) => res.status(200).json(Object.assign({}, this.device.sleepConf)))
-    devicer.patch('/sleep', this.auth.jwt(), (req, res, next) => this.device.updateSleepMode(req.user, req.body, (err, data) =>
-        err ? next(err) : res.status(200).json(data)))
-    routers.push(['/device', devicer])
     // all fruitmix router except token
     Object.keys(routing).forEach(key =>
       routers.push([routing[key].prefix, this.createRouter(this.auth, routing[key].routes)]))

@@ -48,7 +48,6 @@ const WHITE_LIST = {
   media: 'media',
   tasks: 'task',
   'phy-drives': 'nfs',
-  device: 'device',
   fruitmix: 'fruitmix',
   samba: 'samba',
   dlna: 'dlna'
@@ -176,35 +175,6 @@ class Pipe extends EventEmitter {
           throw formatError(new Error('not found'), 404)
         }
         throw formatError(new Error('not found'), 404)
-      }
-
-      if (resource === 'device') {
-        switch (paths.length) {
-          case 2:
-            if (verb.toUpperCase() === 'GET') return this.reqCommand(message, null, this.ctx.device.view())
-            break
-          case 3:
-            if (paths[2] === 'cpuInfo' && verb.toUpperCase() === 'GET') {
-              return this.ctx.device.cpuInfo((err, data) => this.reqCommand(message, err, data))
-            } else if (paths[2] === 'memInfo' && verb.toUpperCase() === 'GET') {
-              return this.ctx.device.memInfo((err, data) => this.reqCommand(message, err, data))
-            } else if (paths[2] === 'net') {
-              if (verb.toUpperCase() === 'GET') return this.ctx.device.interfaces((err, its) => this.reqCommand(message, err, its))
-            } else if (paths[2] === 'speed' && verb.toUpperCase() === 'GET') {
-              return this.reqCommand(message, null, this.ctx.device.netDev())
-            } else if (paths[2] === 'timedate' && verb.toUpperCase() === 'GET') {
-              return this.ctx.device.timedate((err, data) => this.reqCommand(message, err, data))
-            } else if (paths[2] === 'sleep') {
-              if (verb.toUpperCase() === 'GET') {
-                return this.reqCommand(message, null, this.ctx.device.sleepConf)
-              } else if (verb.toUpperCase() === 'PATCH') {
-                return this.ctx.device.updateSleepMode(user, body, (err, data) => this.reqCommand(message, err, data))
-              }
-            }
-            throw formatError(new Error('not found'), 404)
-          default:
-            throw formatError(new Error('not found'), 404)
-        }
       }
 
       // match route path

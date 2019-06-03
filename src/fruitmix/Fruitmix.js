@@ -170,6 +170,7 @@ class Fruitmix extends EventEmitter {
       stats: this.statsApi,
     }
 
+    /*
     // 绑定transmission
     if (opts.useTransmission) {
       // create Transmission directories
@@ -184,6 +185,7 @@ class Fruitmix extends EventEmitter {
 
       this.apis.transmission = this.transmission
     }
+    */
 
     // nfs api is optional
 /**
@@ -214,6 +216,7 @@ class Fruitmix extends EventEmitter {
       this.emit('FruitmixStarted')
     })
 
+    /* Samba && Dlna not support in current version, waiting for design  
     if (opts.useSmb) {
       this.samba = new Samba(opts, this.user, this.drive, this.vfs, this.nfs)
       this.apis.samba = this.samba
@@ -223,7 +226,7 @@ class Fruitmix extends EventEmitter {
       this.dlna = new Dlna(opts, this.user, this.drive, this.vfs)
       this.apis.dlna = this.dlna
     }
-
+    */
   }
 
   init (opts) {
