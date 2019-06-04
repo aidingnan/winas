@@ -637,8 +637,6 @@ class VFS extends EventEmitter {
 
   /**
   Duplicate a file
-
-  
   */
   DUP (user, props, callback) {
   }

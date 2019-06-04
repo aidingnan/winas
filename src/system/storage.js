@@ -8,9 +8,6 @@ const mkdirpAsync = Promise.promisify(require('mkdirp'))
 const debug = require('debug')('storage')
 const deepFreeze = require('deep-freeze')
 
-const Synchronized = require('../common/synchronized')
-const broadcast = require('../common/broadcast')
-
 const probePortsAsync = require('./probePortsAsync')
 const probeBlocksAsync = require('./probeBlocksAsync')
 const probeMountsAsync = require('./procMountsAsync')

@@ -147,34 +147,7 @@ class Drive extends EventEmitter {
   }
 
   createPublicDrive (props, callback) {
-
-    if (IS_WISNUC) {
-      return callback(Object.assign(new Error('Operation Denied'), { status: 400 }))
-    }
-
-    let drive = {
-      uuid: UUID.v4(),
-      type: 'classic',
-      privacy: false,
-      writelist: props.writelist || [],
-      readlist: props.readlist || [],
-      label: props.label || '',
-      smb: true,
-      ctime: new Date().getTime(),
-      mtime: new Date().getTime(),
-      isDeleted: false
-    }
-
-    // TODO create directory
-
-    this.storeSave(drives => {
-      if (drives.filter(d => d.privacy === false && !d.isDeleted).length >= 3)
-        throw Object.assign(new Error('There can be only three public drives'), { status: 400 })
-      if (props.label && !drives.filter(d => !d.isDeleted).every(d => d.label !== props.label)) {
-        throw Object.assign(new Error('label has already been used'), { status: 400 })
-      }
-      return [...drives, drive]
-    }, (err, drives) => err ? callback(err) : callback(null, drive))
+    return callback(Object.assign(new Error('Operation Denied'), { status: 400 }))
   }
 
   /**

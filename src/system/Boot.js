@@ -290,25 +290,25 @@ class Started extends State {
       this.jobs.push(job)
       this.reqSchedJob()
       this.uninstalling = false
-
-      // start timer to do balance
-      this.balanceTimer = setInterval(() => {
-        child.exec(`btrfs balance start ${ fruitmix.fruitmixDir }`, err => {
-          if (err) {
-            child.exec(`btrfs balance start -dusage=0 ${ fruitmix.fruitmixDir }`, err => {
-              console.log('balance error: ', err)
-              if (err) {
-                child.exec(`btrfs balance start -musage=0 ${ fruitmix.fruitmixDir }`, err => {
-                  console.log('balance error: ', err)
-                })
-              }
-            })
-          }
-        })
-      }, 24 * 1000 * 60 * 60)
     } else {
       // if (this.ctx.boundUser) fruitmix.bindFirstUser(this.ctx.boundUser)
     }
+
+    // start timer to do balance
+    this.balanceTimer = setInterval(() => {
+      child.exec(`btrfs balance start ${ fruitmix.fruitmixDir }`, err => {
+        if (err) {
+          child.exec(`btrfs balance start -dusage=0 ${ fruitmix.fruitmixDir }`, err => {
+            console.log('balance error: ', err)
+            if (err) {
+              child.exec(`btrfs balance start -musage=0 ${ fruitmix.fruitmixDir }`, err => {
+                console.log('balance error: ', err)
+              })
+            }
+          })
+        }
+      })
+    }, 24 * 1000 * 60 * 60)
   }
 
   exit () {
@@ -737,8 +737,8 @@ class Importing extends State {
 
       let firstUser = volume.users.find(u => u.isFirstUser === true)
       if (!firstUser) throw new Error('volume admin not found')
-      if (IS_N2 && firstUser.phicommUserId !== this.ctx.boundUser.phicommUserId) throw new Error('volume admin <-> boundUser mismatch')
-      if (IS_WISNUC && firstUser.winasUserId !== this.ctx.boundUser.winasUserId) throw new Error('volume admin <-> boundUser mismatch')
+
+      if (firstUser.winasUserId !== this.ctx.boundUser.winasUserId) throw new Error('volume admin <-> boundUser mismatch')
     } catch (e) {
       return process.nextTick(() => {
         this.setState(Probing)
@@ -1038,37 +1038,20 @@ class Boot extends EventEmitter {
 
     let firstUser = vol.users.find(u => u.isFirstUser === true)
     if (!firstUser) return false // firstUser not found
-    if (IS_N2 && firstUser.phicommUserId !== this.boundUser.phicommUserId) return false
-    if (IS_WISNUC && firstUser.winasUserId !== this.boundUser.id) return false
+    if (firstUser.winasUserId !== this.boundUser.id) return false
     return true
   }
 
   setBoundUser (user) {
-    if (IS_WS215I) {
-      if (user && this.boundUser && this.boundUser.id !== user.id) {
-        console.log('====== boundUser runtime change =====')
-        console.log('====== fruitmix exit =====')
-        process.exit(61)
-      }
-      this.boundUser = user
-      this.state.boundUserUpdated()
-    } else if (IS_WINAS) {
-      this.boundUser = user
-      if (this.state.constructor.name !== 'Started') return
-      this.fruitmix.bindFirstUser(user)
-    } 
-    else {
-      console.log('====== unknown device type =====')
-      console.log('====== exit =====')
-      process.exit(61)
-    }
+    this.boundUser = user
+    if (this.state.constructor.name !== 'Started') return
+    this.fruitmix.bindFirstUser(user)
   }
 
   view () {
     return {
       state: this.state.constructor.name.toUpperCase(),
-      boundUser: this.boundUser ? { 
-        phicommUserId: this.boundUser.phicommUserId,
+      boundUser: this.boundUser ? {
         winasUserId: this.boundUser.id
       } : this.boundUser,
       boundVolume: this.volumeStore && this.volumeStore.data,
@@ -1078,72 +1061,38 @@ class Boot extends EventEmitter {
   }
 
   init (target, mode, callback) {
-    if (IS_WINAS) return process.nextTick(() => callback(new Error('Error Operation')))
-    this.state.init(target, mode, callback)
+    return process.nextTick(() => callback(new Error('Error Operation')))
+    // this.state.init(target, mode, callback)
   }
 
   import (volumeUUID, callback) {
-    if (IS_WINAS) return process.nextTick(() => callback(new Error('Error Operation')))
-    this.state.import(volumeUUID, callback)
+    return process.nextTick(() => callback(new Error('Error Operation')))
+    //this.state.import(volumeUUID, callback)
   }
 
   repair (devices, mode, callback) {
-    if (IS_WINAS) return process.nextTick(() => callback(new Error('Error Operation')))
-    this.state.repair(devices, mode, callback)
+    return process.nextTick(() => callback(new Error('Error Operation')))
+    //this.state.repair(devices, mode, callback)
   }
 
   add (devices, mode, callback) {
-    if (IS_WINAS) return process.nextTick(() => callback(new Error('Error Operation')))
-    this.state.add(devices, mode, callback)
+    return process.nextTick(() => callback(new Error('Error Operation')))
+    //this.state.add(devices, mode, callback)
   }
 
   remove (devices, callback) {
-    if (IS_WINAS) return process.nextTick(() => callback(new Error('Error Operation')))
-    this.state.remove(devices, callback)
+    return process.nextTick(() => callback(new Error('Error Operation')))
+    //this.state.remove(devices, callback)
   }
 
-  // 格式化磁盘
-  // 删除磁盘卷绑定关系
-  /**
-   * 
-   * @param {*} user 
-   * @param {*} props
-   * @param {boolean} props.format 
-   * @param {*} callback 
-   */
+  
   uninstall (user, props,callback) {
-    if (IS_WISNUC) return process.nextTick(() => callback(new Error('Error Operation')))
-
-    if (props.reset && typeof props.reset !== 'boolean') {
-      return callback(Object.assign(new Error('props error'), { status: 400 }))
-    }
-    props.format = !!props.format
-    // if reset , do reset first, auto reboot false
-    if (props.reset) {
-      this.resetToFactory(user, !props.format, err => {
-        if (err) {
-          console.log('===========================')
-          console.log('factory reset error')
-          console.log('maybe not error if not n2 device')
-          console.log('===========================')
-          console.log(err)
-        }
-        if (props.format) return this.state.uninstall(props, callback)
-        return callback(err)
-      })
-    } else if (props.format)
-      this.state.uninstall(props, callback)
-    else 
-      callback(new Error('no operation'))
+    return process.nextTick(() => callback(new Error('Error Operation')))
   }
 
   // TODO: wait definition
   resetToFactory(user, autoReboot, callback) {
-    if (IS_WS215I) {
-
-    } else {
-      return process.nextTick(() => callback(new Error('Error Operation')))
-    }
+    return process.nextTick(() => callback(new Error('Error Operation')))
   }
 
   async ejectUSBAsync (target) {
@@ -1213,16 +1162,8 @@ class Boot extends EventEmitter {
   }
 
   GET_BoundVolume (user, callback) {
-    let vol
-    if (IS_WINAS) {
-      vol = this.findEmbedVolume()
-      if (!vol) return callback(new Error('embed volume not found'))
-    } else {
-      if (!this.volumeStore.data) return callback(new Error('no bound volume')) // no bound volume
-      vol = this.storage.volumes.find(v => v.uuid === this.volumeStore.data.uuid)
-      if (!vol) return callback(new Error('bound volume not found'))  // bound volume not found
-      if (vol.isMissing) return callback(new Error('bound volume has missing device'))
-    }
+    let vol = this.findEmbedVolume()
+    if (!vol) return callback(new Error('embed volume not found'))
     
     child.exec(`df -P "${vol.mountpoint}"`, (err, stdout) => {
       if (!err) {

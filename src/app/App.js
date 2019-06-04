@@ -1,7 +1,4 @@
 const EventEmitter = require('events')
-const child = require('child_process')
-const os = require('os')
-const fs = require('fs')
 
 const Boot = require('../system/Boot')
 const Auth = require('../middleware/Auth')
@@ -12,9 +9,7 @@ const Config = require('config')
 
 const { passwordEncrypt } = require('../lib/utils')
 const routing = require('./routing')
-const Pipe = require('./Pipe')
-const Transform = require('./Transform')
-const Device = require('../fruitmix/Device')
+const Transform = require('./Pipe')
 /**
 Create An Application
 
@@ -89,17 +84,6 @@ class App extends EventEmitter {
       let fruitmixOpts = opts.fruitmixOpts
       fruitmixOpts.cloudConf = this.cloudConf
 
-      try { // find slots config
-        const SlotConfPath = configuration.chassis.slots
-        let slots
-        if (fs.existsSync(SlotConfPath)) {
-          slots = JSON.parse(fs.readFileSync(SlotConfPath).toString().trim())
-        }
-        if (Array.isArray(slots)) {
-          configuration.slots = slots
-        }
-      } catch(e) {}
-
       this.boot = new Boot({ configuration, fruitmixOpts })
 
       Object.defineProperty(this, 'fruitmix', { get () { return this.boot.fruitmix } })
@@ -118,7 +102,7 @@ class App extends EventEmitter {
     }
 
     // create a Pipe
-    this.pipe = IS_WISNUC ? new Transform(pipOpts) : new Pipe(pipOpts)
+    this.pipe = new Transform(pipOpts)
 
     // create server if required
     if (opts.useServer) {
@@ -137,12 +121,10 @@ class App extends EventEmitter {
     }
     // listen message from daemon
     if (opts.listenProcess)
-      process.on('message', IS_WISNUC ?
-        this.handleWinasMessage.bind(this)
-        : this.handleMessage.bind(this))
+      process.on('message', this.handleWinasMessage.bind(this))
   }
 
-  // FOR NEW WISNUC Application
+  // handle message from winasd
   handleWinasMessage (msg) {
     let message
     try {
@@ -167,42 +149,6 @@ class App extends EventEmitter {
         break
       case 'userUpdate':
         this.fruitmix && this.fruitmix.cloudUsersUpdate(message.data)
-        break
-      default:
-        break
-    }
-  }
-
-  // For N2 Device (deprecated api)
-  handleMessage (msg) {
-    let message
-    try {
-      message = JSON.parse(msg)
-    } catch (e) {
-      console.log('Bootstrap Message -> JSON parse Error')
-      console.log(msg)
-      return
-    } 
-    switch (message.type) {
-      case 'pip' :
-        this.pipe.handleMessage(message)
-        break
-      case 'bootstrap_token' :
-        this.cloudConf.cloudToken = message.data.token
-        break
-      case 'bootstrap_device' :
-        this.cloudConf.device = message.data
-        break
-      case 'bootstrap_boundUser':
-        if (this.boot && message.hasOwnProperty('data')) this.boot.setBoundUser(message.data)
-        break
-      case 'bootstrap_unbind':
-        if (this.boot) {
-          return this.boot.volumeStore.save(null, (err, data) => {
-            this.boot.fruitmix = undefined // stop listen fruitmix api
-            setTimeout(() => process.exit(61), 1000)
-          })
-        }
         break
       default:
         break
