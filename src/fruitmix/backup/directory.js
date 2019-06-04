@@ -75,7 +75,7 @@ class Reading extends Directory.prototype.Reading {
   */
   updateChildren (xstats) {
     // total
-    this.dir.dirCount = xstats.filter(x => x.type === 'directory').length
+    this.dir.dirCount = xstats.filter(x => x.type === 'directory' && !x.deleted).length
     this.dir.fileCount = xstats.filter(x => x.type === 'file' && !x.fingerprint).length
     this.dir.fileSize = xstats.filter(x => x.type === 'file' && !x.fingerprint).reduce((acc, f) => acc + f.size, 0)
 

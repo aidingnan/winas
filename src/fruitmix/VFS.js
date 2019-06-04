@@ -637,8 +637,6 @@ class VFS extends EventEmitter {
 
   /**
   Duplicate a file
-
-  
   */
   DUP (user, props, callback) {
   }
@@ -800,93 +798,6 @@ class VFS extends EventEmitter {
   }
 
   /** end of new api for upload module **/
-
-  // are we using this function ? TODO
-  isDriveUUID (driveUUID) {
-    return !!this.roots.get(driveUUID)
-  }
-
-  getDriveDirs (driveUUID) {
-    return Array.from(this.uuidMap)
-      .map(kv => kv[1])
-      .filter(dir => dir.root().uuid === driveUUID)
-      .map(dir => ({
-        uuid: dir.uuid,
-        parent: dir.parent ? dir.parent.uuid : '',
-        name: dir.name,
-        mtime: Math.abs(dir.mtime)
-      }))
-  }
-
-  getDriveDir (driveUUID, dirUUID) {
-    let drive = this.roots.get(driveUUID)
-    let dir = this.uuidMap.get(dirUUID)
-    if (!drive || !dir || dir.root() !== drive) return
-
-    return dir
-  }
-
-  /**
-  Get directory path by drive uuid and dir uuid
-
-  @param {string} driveUUID
-  @param {string} dirUUID - directory uuid
-  */
-  directoryPath (driveUUID, dirUUID) {
-    let drive = this.roots.get(driveUUID)
-    let dir = this.uuidMap.get(dirUUID)
-
-    if (!drive || !dir || dir.root() !== drive) return
-
-    return dir.abspath()
-  }
-
-  /**
-  Get file path by drive uuid, dir uuid, and file name
-  */
-  filePath (driveUUID, dirUUID, name) {
-    let dirPath = this.directoryPath(driveUUID, dirUUID)
-    
-    if (!dirPath) return
-
-    return path.join(dirPath, name)
-  }
-
-  // TODO filter by drives
-  getFingerprints (drives) {
-    return Array.from(this.metaMap).map(kv => kv[0])
-  }
-
-  // TODO filter by drives
-  getFilesByFingerprint (fingerprint, drives) {
-    let fileSet = this.metaMap.get(fingerprint)
-    if (!fileSet) return []
-
-    let arr = []
-    fileSet.forEach(f => arr.push(f.abspath()))
-    return arr
-  }
-
-  audit (drivePath, relPath1, relPath2) {
-    let rootDir
-    this.roots.forEach(dir => {
-      if (dir.abspath() === drivePath) rootDir = dir
-    })
-
-    if (!rootDir) {
-      console.log(`warning: (drive audit) root dir not found for ${drivePath}`)
-      return
-    }
-
-    let relPath = relPath2 || relPath1
-    let names = relPath.split(path.sep).filter(x => !!x)
-    let dir = rootDir.nameWalk(names)
-
-    smbDebug(`audit walk to ${dir.abspath()}`)
-
-    // delay 1s
-    dir.read(1000)
-  }
 
   //////////////////////////////////////////////////////////////////////////////
   //                                                                          // 
@@ -1499,11 +1410,6 @@ class VFS extends EventEmitter {
     }
 
     process.nextTick(() => callback(err, data))
-  }  
-
-  getFileByUUID (user, props, callback) {
-
-    console.log(props)
   }
 
   dirFormat (user, props, callback) {

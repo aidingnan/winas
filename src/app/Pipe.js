@@ -4,16 +4,15 @@ const _ = require('lodash')
 const request = require('request')
 const path = require('path')
 const fs = require('fs')
-const debug = require('debug')('pipe')
+const debug = require('debug')('wss:transform')
 
 const routing = require('./routing')
 
-const BASE_URL = process.argv.includes('--devCloud')
-  ? 'http://sohon2dev.phicomm.com/ResourceManager/nas/callback/'
-  : 'http://sohon2test.phicomm.com/ResourceManager/nas/callback/'
-const RE_BOUNDARY = /^multipart\/.+?(?:; boundary=(?:(?:"(.+)")|(?:([^\s]+))))$/i
-debug('base url', BASE_URL)
+const Config = require('config')
 
+const getURL = (stationId, jobId) => `${Config.pipe.baseURL}/s/v1/station/${stationId}/response/${jobId}`
+
+const RE_BOUNDARY = /^multipart\/.+?(?:; boundary=(?:(?:"(.+)")|(?:([^\s]+))))$/i
 const routes = []
 // routing map
 // [{
@@ -49,7 +48,6 @@ const WHITE_LIST = {
   media: 'media',
   tasks: 'task',
   'phy-drives': 'nfs',
-  device: 'device',
   fruitmix: 'fruitmix',
   samba: 'samba',
   dlna: 'dlna'
@@ -87,19 +85,17 @@ class Pipe extends EventEmitter {
   }
   /**
    * check authorization
-   * @param {string} phicommUserId
+   * @param {string} winasUserId
    * @return {object} user
    */
-  checkUser (phicommUserId) {
+  checkUser (winasUserId) {
     let user
     if (!this.ctx.fruitmix()) {
-      user = this.ctx.boot.view().boundUser
-        ? (this.ctx.boot.view().boundUser.phicommUserId === phicommUserId
-          ? this.ctx.boot.view().boundUser : null) : null
+      user = null
     } else {
-      user = this.ctx.fruitmix().getUserByPhicommUserId(phicommUserId)
+      user = this.ctx.fruitmix().getUserByWinasUserId(winasUserId)
     }
-    if (!user) throw formatError(new Error(`uid: ${phicommUserId}, check user failed`), 401)
+    if (!user) throw formatError(new Error(`uid: ${winasUserId}, check user failed`), 401)
     // throw 503 unavailable if fruitmix === null
     return Object.assign({}, user, { remote: true })
   }
@@ -124,44 +120,19 @@ class Pipe extends EventEmitter {
    * @param {object} message
    */
   checkMessage (message) {
-    // {
-    //   type: 'pip',
-    //   msgId: 'xxxx',
-    //   packageParams: {
-    //     sendingServer: '127.0.0.1',
-    //     waitingServer: '127.0.0.1',
-    //     uid: 123456789
-    //   },
-    //   data: {
-    //     verb: 'GET',
-    //     urlPath: '/token',
-    //     body: {},
-    //     params: {}
-    //   }
-    // }
     if (!message) throw formatError(new Error('pipe have no message'), 400)
 
-    const { msgId, packageParams, data } = message
-    if (!msgId) {
+    if (!message.sessionId) {
       throw formatError(new Error(`message have no msgId`), 400)
     }
-    if (!packageParams) {
-      throw formatError(new Error(`this msgId: ${msgId}, message have no packageParams`), 400)
+    if (!message.user || !message.user.id) {
+      throw formatError(new Error(`this msgId: message have no user`), 400)
     }
-    if (!packageParams.waitingServer) {
-      throw formatError(new Error(`this msgId: ${msgId}, packageParams have no waitingServer`), 400)
+    if (!message.verb) {
+      throw formatError(new Error(`this msgId: data have no verb`), 400)
     }
-    if (!packageParams.uid) {
-      throw formatError(new Error(`this msgId: ${msgId}, packageParams have no uid`), 400)
-    }
-    if (!data) {
-      throw formatError(new Error(`this msgId: ${msgId}, message have no data`), 400)
-    }
-    if (!data.verb) {
-      throw formatError(new Error(`this msgId: ${msgId}, data have no verb`), 400)
-    }
-    if (!data.urlPath) {
-      throw formatError(new Error(`this msgId: ${msgId}, data have no urlPath`), 400)
+    if (!message.urlPath) {
+      throw formatError(new Error(`this msgId: data have no urlPath`), 400)
     }
   }
   /**
@@ -171,54 +142,39 @@ class Pipe extends EventEmitter {
   handleMessage (message) {
     try {
       this.checkMessage(message)
-      const user = this.checkUser(message.packageParams.uid)
+      const user = this.checkUser(message.user.id)
       // reponse to cloud
-      const { urlPath, verb, body, params } = message.data
+      const { urlPath, verb, body, params, headers } = message
       const paths = urlPath.split('/') // ['', 'drives', '123', 'dirs', '456']
       const resource = WHITE_LIST[paths[1]]
       if (!resource) {
         throw formatError(new Error(`this resource: ${resource}, not support`), 400)
       }
+
+      if (!headers || !headers['cookie']) {
+        throw formatError(new Error(`headers error`), 400)
+      }
+
       // 由于 token 没有 route， 单独处理 token
       if (resource === 'token') {
         return this.reqCommand(message, null, this.getToken(user))
       }
       // 单独处理 boot
-      if (resource === 'boot' && paths.length === 2) {
-        if (verb.toUpperCase() === 'GET') return this.reqCommand(message, null, this.getBootInfo())
-        else if (verb.toUpperCase() === 'PATCH') {
-          return this.ctx.boot.PATCH_BOOT(user, body, err => this.reqCommand(message, err, {}))
+      if (resource === 'boot') {
+        if (paths.length === 2) {
+          if (verb.toUpperCase() === 'GET') return this.reqCommand(message, null, this.getBootInfo())
+          else if (verb.toUpperCase() === 'PATCH') {
+            return this.ctx.boot.PATCH_BOOT(user, body, err => this.reqCommand(message, err, {}))
+          }
+          throw formatError(new Error('not found'), 404)
+        } else if (paths.length === 3) {
+          if (verb.toUpperCase() === 'GET' && paths[paths.length -1] === 'space')
+            return this.ctx.boot.GET_BoundVolume(user, (err, data) => {
+              this.reqCommand(message, err, data)
+            })
+          throw formatError(new Error('not found'), 404)
         }
         throw formatError(new Error('not found'), 404)
-      }
-
-      if (resource === 'device') {
-        switch (paths.length) {
-          case 2:
-            if (verb.toUpperCase() === 'GET') return this.reqCommand(message, null, this.ctx.device.view())
-            break
-          case 3:
-            if (paths[2] === 'cpuInfo' && verb.toUpperCase() === 'GET') {
-              return this.ctx.device.cpuInfo((err, data) => this.reqCommand(message, err, data))
-            } else if (paths[2] === 'memInfo' && verb.toUpperCase() === 'GET') {
-              return this.ctx.device.memInfo((err, data) => this.reqCommand(message, err, data))
-            } else if (paths[2] === 'net') {
-              if (verb.toUpperCase() === 'GET') return this.ctx.device.interfaces((err, its) => this.reqCommand(message, err, its))
-            } else if (paths[2] === 'speed' && verb.toUpperCase() === 'GET') {
-              return this.reqCommand(message, null, this.ctx.device.netDev())
-            } else if (paths[2] === 'timedate' && verb.toUpperCase() === 'GET') {
-              return this.ctx.device.timedate((err, data) => this.reqCommand(message, err, data))
-            } else if (paths[2] === 'sleep') {
-              if (verb.toUpperCase() === 'GET') {
-                return this.reqCommand(message, null, this.ctx.device.sleepConf)
-              } else if (verb.toUpperCase() === 'PATCH') {
-                return this.ctx.device.updateSleepMode(user, body, (err, data) => this.reqCommand(message, err, data))
-              }
-            }
-            throw formatError(new Error('not found'), 404)
-          default:
-            throw formatError(new Error('not found'), 404)
-        }
       }
 
       // match route path
@@ -252,7 +208,7 @@ class Pipe extends EventEmitter {
       const opts = { user, matchRoute, method, query, body, params }
       this.apis(message, opts)
     } catch (err) {
-      debug(`pipe message error: `, err)
+      debug('Transform Error: ', err)
       this.reqCommand(message, err)
     }
   }
@@ -267,27 +223,25 @@ class Pipe extends EventEmitter {
     const props = Object.assign({}, query, body, params)
     // postform
     if (matchRoute.verb === 'POSTFORM') {
-      // get resource from cloud
+      // Fetch
       this.getResource(message).on('response', response => {
         try {
           props.length = response.headers['content-length']
           const m = RE_BOUNDARY.exec(response.headers['content-type'])
           props.boundary = m[1] || m[2]
           props.formdata = response
-          // console.log('response body: ', body)
-          // console.log('response headers: ', response.headers)
         } catch (err) {
-          return this.reqCommand(message, err, true)
+          return this.reqCommand(message, err, undefined, false, true)
         }
         // { driveUUID, dirUUID, boundary, length, formdata }
         this.ctx.fruitmix().apis[matchRoute.api][method](user, props, (err, data) => {
-          this.reqCommand(message, err, data, true)
+          this.reqCommand(message, err, data, false, true)
         })
       })
     } else {
       return this.ctx.fruitmix().apis[matchRoute.api][method](user, props, (err, data) => {
         if (err) return this.reqCommand(message, err)
-        // stream
+        // Store
         if (typeof data === 'string' && path.isAbsolute(data)) {
           this.postResource(message, data)
         } else {
@@ -303,53 +257,46 @@ class Pipe extends EventEmitter {
    * @param {object} res
    * @memberof Pipe
    */
-  reqCommand (message, error, res, flag) {
-    debug(`msgId: ${message.msgId}`, error, res)
+  reqCommand (message, error, res, isFetch, isStore) {
     let resErr
     if (error) {
       error = formatError(error)
-      resErr = {
-        msg: error.message,
-        status: error.status
+      resErr = error
+    }
+
+    let uri = getURL(this.ctx.deviceSN(), message.sessionId, false)
+    if (isFetch) uri += '/pipe/fetch'
+    else if (isStore) uri += '/pipe/store'
+    else uri += '/json'
+    debug(uri)
+    return request({
+      uri: uri,
+      method: 'POST',
+      headers: { 
+        Authorization: this.ctx.config.cloudToken,
+        'Cookie': message.headers['cookie']
+      },
+      body: true,
+      json: {
+        error : resErr,
+        data: res
       }
-    }
-    let count = 0
-    const req = () => {
-      if (++count > 2) return
-      return request({
-        uri: `${BASE_URL}${message.packageParams.waitingServer}/command`,
-        method: 'POST',
-        headers: { Authorization: this.ctx.config.cloudToken },
-        body: true,
-        json: {
-          common: {
-            deviceSN: this.ctx.config.device.deviceSN,
-            msgId: message.msgId,
-            flag: !!flag
-          },
-          data: {
-            err: resErr,
-            res: res
-          }
-        }
-      }, (error, response, body) => {
-        if (!error && response.statusCode === 200) {
-          debug(`reqCommand body: ${body}`)
-        }
-      })
-    }
-    return req()
+    }, (error, response, body) => {
+      if (error) return debug('reqCommand error: ', error)
+      debug('reqCommand success:',response.statusCode, body)
+    })
   }
   /**
-   * post resource
+   * post resource (fetch)
    * @param {string} absolutePath
    * @memberof Pipe
    */
   postResource (message, absolutePath) {
-    let body = message.data.params
+
+    let headers = message.headers
     let start, end
-    if (body && body.header && body.header.range) {
-      const rangeArr = body.header.range.split('-').filter(x => !!x)
+    if (headers && headers['range']) {
+      const rangeArr = headers['range'].slice(6).split('-').filter(x => !!x)
       if (rangeArr.length === 1) {
         start = parseInt(rangeArr[0])
       }
@@ -360,35 +307,31 @@ class Pipe extends EventEmitter {
       console.log('required range stream: ', start, '  ', end)
     }
     request.post({
-      url: `${BASE_URL}${message.packageParams.waitingServer}/resource`,
+      url: getURL(this.ctx.deviceSN(), message.sessionId, false),
       headers: {
         Authorization: this.ctx.config.cloudToken,
-        'content-type': 'application/octet-stream'
-      },
-      qs: {
-        deviceSN: this.ctx.config.device.deviceSN,
-        msgId: message.msgId
+        'content-type': 'application/octet-stream',
+        'Cookie': message.headers['cookie']
       },
       body: fs.createReadStream(absolutePath, { start, end })
     }, (error, response, body) => {
-      if (!error && response.statusCode === 200) {
-        debug(`postResource body: ${body}`)
+      if (error) {
+        return debug(`postResource error: ${error}`)
       }
+      debug('reqCommand success:',response.statusCode, body)
     })
   }
   /**
-   * get resource
+   * get resource (store)
    * @memberof Pipe
    */
   getResource (message) {
     return request({
-      uri: `${BASE_URL}${message.packageParams.waitingServer}/resource`,
+      uri: getURL(this.ctx.deviceSN(), message.sessionId, false),
       method: 'GET',
-      headers: { Authorization: this.ctx.config.cloudToken },
-      qs: {
-        deviceSN: this.ctx.config.device.deviceSN,
-        msgId: message.msgId,
-        uid: message.packageParams.uid
+      headers: {
+        Authorization: this.ctx.config.cloudToken,
+        'Cookie': message.headers['cookie']
       }
     })
   }

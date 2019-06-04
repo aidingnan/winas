@@ -1,15 +1,5 @@
-const sinon = require('sinon')
-const UUID = require('uuid')
 const request = require('supertest')
-const Promise = require('bluebird')
-const mkdirpAsync = Promise.promisify(require('mkdirp'))
-const crypto = require('crypto')
-const fs = Promise.promisifyAll(require('fs'))
-const path = require('path')
-const rimrafAsync = Promise.promisify(require('rimraf'))
 const JWT = require('jwt-simple')
-const E = require('../../src/lib/error')
-const fingerprintSimpleAsync = Promise.promisify(require('../../src/utils/fingerprintSimple'))
 
 const secret = 'Lord, we need a secret'
 

@@ -276,18 +276,11 @@ class User extends EventEmitter {
           throw Object.assign(new Error('active users max 10'), { status: 400 })
         }
       }
-      // clean reason
-      changeData.forEach(u => {
-        if (u.status !== USER_STATUS.INACTIVE && u.reason) {
-          u.reason = undefined
-        }
-      })
       return changeData
     }, callback)
   }
 
   /**
-
   TODO lastChangeTime is required by smb
   TODO createTime is required by spec
   */
@@ -295,38 +288,25 @@ class User extends EventEmitter {
     let uuid = UUID.v4()
     this.storeSave(users => {
       let isFirstUser = users.length === 0
-      let { username, phicommUserId, winasUserId, password, smbPassword, phoneNumber } = props // eslint-disable-line
+      let { username, winasUserId, phoneNumber } = props // eslint-disable-line
 
       let cU = users.find(u => u.username === username)
       if (cU && cU.status !== USER_STATUS.DELETED) throw new Error('username already exist')
       let pnU = users.find(u => u.phoneNumber === phoneNumber)
       if (pnU && pnU.status !== USER_STATUS.DELETED) throw new Error('phoneNumber already exist')
-
-      if (IS_N2) {
-        let pU = users.find(u => u.phicommUserId === phicommUserId)
-        if (pU && pU.status !== USER_STATUS.DELETED) throw new Error('phicommUserId already exist')
-      }
-
-      if (IS_WISNUC) {
-        let pU = users.find(u => u.winasUserId === winasUserId)
-        if (pU && pU.status !== USER_STATUS.DELETED) throw new Error('winasUserId already exist')
-      }
+      let pU = users.find(u => u.winasUserId === winasUserId)
+      if (pU && pU.status !== USER_STATUS.DELETED) throw new Error('winasUserId already exist')
 
       let newUser = {
         uuid,
         username: props.username,
         isFirstUser,
-        phicommUserId: props.phicommUserId, // for phi
-        password: props.password, // for phi
-        smbPassword: props.smbPassword,
         status: USER_STATUS.ACTIVE,
         createTime: new Date().getTime(),
         lastChangeTime: new Date().getTime(),
         phoneNumber: props.phoneNumber,
         winasUserId: props.winasUserId // for winas
       }
-
-      if (!IS_WISNUC) newUser.itime = new Date().getTime() // inviteTime, serve for check invite timeout
 
       return [...users, newUser]
     }, (err, data) => {
@@ -336,7 +316,7 @@ class User extends EventEmitter {
   }
 
   updateUser (userUUID, props, callback) {
-    let { username, status, phoneNumber, smbPassword } = props
+    let { username, status, phoneNumber } = props
     this.storeSave(users => {
       let index = users.findIndex(u => u.uuid === userUUID)
       if (index === -1) throw new Error('user not found')
@@ -350,10 +330,6 @@ class User extends EventEmitter {
         if (users.find(u => u.phoneNumber === phoneNumber && u.status !== USER_STATUS.DELETED)) throw new Error('phoneNumber already exist')
         nextUser.phoneNumber = phoneNumber
       }
-      if (smbPassword) {
-        nextUser.smbPassword = md4Encrypt(smbPassword)
-        nextUser.lastChangeTime = new Date().getTime()
-      }
       if (status) nextUser.status = status
       return [...users.slice(0, index), nextUser, ...users.slice(index + 1)]
     }, (err, data) => {
@@ -363,9 +339,7 @@ class User extends EventEmitter {
   }
 
   updatePassword (userUUID, props, callback) {
-    if (IS_WISNUC){
       return callback(Object.assign(new Error('not found'), { status: 404 }))
-    }
   }
 
   bindFirstUser (boundUser) {
@@ -374,48 +348,20 @@ class User extends EventEmitter {
       if (index === -1) {
         return [{
           uuid: UUID.v4(),
-          username: boundUser.name || boundUser.username || 'admin',
+          username: boundUser.username || 'admin',
           isFirstUser: true,
-          phicommUserId: boundUser.phicommUserId,
-          password: boundUser.password,
-          smbPassword: '',
           status: USER_STATUS.ACTIVE,
-          winasUserId: boundUser.id
+          winasUserId: boundUser.id,
+          phoneNumber: boundUser.phone
         }]
       } else {
         let firstUser = Object.assign({}, users[index])
-        if (IS_WISNUC) {
-          if (firstUser.winasUserId !== boundUser.id) {
-            console.log('===================')
-            console.log('This is not an error, but fruitmix received a bound user')
-            console.log('different than the previous one, exit')
-            console.log('===================')
-            process.exit(67)
-          }
-          //TODO: refresh what?
-        } else {
-          if (firstUser.phicommUserId !== boundUser.phicommUserId) {
-            console.log('===================')
-            console.log('This is not an error, but fruitmix received a bound user')
-            console.log('different than the previous one, exit')
-            console.log('===================')
-            process.exit(67)
-          }
-          // maybe undefined
-          firstUser.password = boundUser.password
-          if (isNonEmptyString(boundUser.phoneNumber) && firstUser.phoneNumber !== boundUser.phoneNumber) {
-            if (users.find(u => u.phoneNumber === boundUser.phoneNumber && u.status !== USER_STATUS.DELETED)) {
-              console.log('==============')
-              console.log('update bound user phoneNumber already exist')
-              console.log('update failed')
-              console.log('==============')
-            } else {
-              console.log('==============')
-              console.log('update bound user phoneNumber')
-              console.log('==============')
-              firstUser.phoneNumber = boundUser.phoneNumber
-            }
-          }
+        if (firstUser.winasUserId !== boundUser.id) {
+          console.log('===================')
+          console.log('This is not an error, but fruitmix received a bound user')
+          console.log('different than the previous one, exit')
+          console.log('===================')
+          process.exit(67)
         }
         return [
           ...users.slice(0, index),
@@ -439,7 +385,6 @@ class User extends EventEmitter {
       uuid: user.uuid,
       username: user.username,
       isFirstUser: user.isFirstUser,
-      phicommUserId: user.phicommUserId,
       phoneNumber: user.phoneNumber,
       winasUserId: user.winasUserId,
       avatarUrl: user.avatarUrl
@@ -451,13 +396,9 @@ class User extends EventEmitter {
       uuid: user.uuid,
       username: user.username,
       isFirstUser: user.isFirstUser,
-      phicommUserId: user.phicommUserId, // for phi
-      password: !!user.password,
-      smbPassword: !!user.smbPassword,
       createTime: user.createTime,
       status: user.status,
       phoneNumber: user.phoneNumber,
-      reason: user.reason, // for phi
       winasUserId: user.winasUserId,
       avatarUrl: user.avatarUrl
     }
@@ -490,20 +431,13 @@ class User extends EventEmitter {
 
   /**
   Implement POST method
-
-  wisnuc: the first user can be created by anonymous user
-  phicomm: the first user cannot be created by api. It must be injected.
   */
   POST (user, props, callback) {
     if (!isNonNullObject(props)) return callback(Object.assign(new Error('props must be non-null object'), { status: 400 }))
-    let recognized
-    if (!IS_WISNUC) {
-      recognized = ['username', 'phicommUserId', 'phoneNumber']
-    } else {
-      // winas not allow
-      recognized = ['username', 'password', 'phoneNumber', 'winasUserId']
-      return callback(Object.assign(new Error('not found'), { status: 404 }))
-    }
+    let recognizedStatus = ['username', 'password', 'phoneNumber', 'winasUserId']
+    // by design, can not update anything
+    return callback(Object.assign(new Error('not found'), { status: 404 }))
+    
     Object.getOwnPropertyNames(props).forEach(key => {
       if (!recognized.includes(key)) throw Object.assign(new Error(`unrecognized prop name ${key}`), { status: 400 })
     })
@@ -534,56 +468,11 @@ class User extends EventEmitter {
   Implement PATCH
   */
   PATCH (user, props, callback) {
-    if (IS_WISNUC){
-      return callback(Object.assign(new Error('not found'), { status: 404 }))
-    }
-
-    let userUUID
-    let devU = isUUID(props.userUUID) ? this.users.find(u => u.uuid === props.userUUID && u.status !== USER_STATUS.DELETED)
-      : this.users.find(u => u.phicommUserId === props.userUUID && u.status !== USER_STATUS.DELETED)
-    if (!devU) return callback(Object.assign(new Error('user not found'), { status: 404 }))
-    userUUID = devU.uuid
-
-    if (props.password) {
-      let recognized = ['password', 'userUUID', 'encrypted']
-      if (!Object.getOwnPropertyNames(props).every(k => recognized.includes(k))) {
-        return process.nextTick(() => callback(Object.assign(new Error('too much props in body'), { status: 400 })))
-      }
-      if (user.uuid !== userUUID) return process.nextTick(() => callback(Object.assign(new Error('Permission Denied'), { status: 403 })))
-      this.updatePassword(userUUID, props, (err, user) => err ? callback(err) : callback(null, this.fullInfo(user)))
-    } else {
-      let recognized = ['username', 'status', 'userUUID', 'phoneNumber', 'smbPassword']
-      if (!Object.getOwnPropertyNames(props).every(k => recognized.includes(k))) {
-        return process.nextTick(() => callback(Object.assign(new Error('too much props in body'), { status: 400 })))
-      }
-
-      if (props.username && !isNonEmptyString(props.username)) return callback(Object.assign(new Error('username must be non-empty string'), { status: 400 }))
-
-      let u = this.users.find(u => u.username === props.username)
-      if (u && u.status !== USER_STATUS.DELETED) return callback(Object.assign(new Error('username exist'), { status: 400 }))
-      let recognizedStatus = [USER_STATUS.ACTIVE, USER_STATUS.INACTIVE, USER_STATUS.DELETED]
-
-      if (props.status && !user.isFirstUser) return callback(Object.assign(new Error('Permission Denied'), { status: 403 }))
-      if (props.status && user.uuid === userUUID) return callback(Object.assign(new Error('can not change admin status'), { status: 400 }))
-      if (props.status && !recognizedStatus.includes(props.status)) return callback(Object.assign(new Error('unknown status'), { status: 400 }))
-
-      if (!user.isFirstUser && user.uuid !== userUUID) return process.nextTick(() => callback(Object.assign(new Error('Permission Denied'), { status: 403 })))
-      this.updateUser(userUUID, props, (err, data) => err ? callback(err) : callback(null, this.fullInfo(data)))
-    }
+    return callback(Object.assign(new Error('not found'), { status: 404 }))
   }
 
   DELETE (user, props, callback) {
-    if (GLOBAL_CONFIG.type === 'winas '){
-      return callback(Object.assign(new Error('not found'), { status: 404 }))
-    }
-    let userUUID
-    let devU = isUUID(props.userUUID) ? this.users.find(u => u.uuid === props.userUUID && u.status !== USER_STATUS.DELETED)
-      : this.users.find(u => u.phicommUserId && u.phicommUserId === props.userUUID && u.status !== USER_STATUS.DELETED)
-    if (!devU) return callback(Object.assign(new Error('user not found'), { status: 404 }))
-    userUUID = devU.uuid
-
-    if (!user.isFirstUser) return callback(Object.assign(new Error('Permission Denied'), { status: 403 }))
-    this.updateUser(userUUID, { status: USER_STATUS.DELETED }, callback)
+    return callback(Object.assign(new Error('not found'), { status: 404 }))
   }
 }
 

@@ -1,16 +1,10 @@
 const Promise = require('bluebird')
 const path = require('path')
 const fs = Promise.promisifyAll(require('fs'))
-const child = require('child_process')
 const EventEmitter = require('events')
-const crypto = require('crypto')
 
 const rimraf = require('rimraf')
 const mkdirp = require('mkdirp')
-const mkdirpAsync = Promise.promisify(mkdirp)
-const rimrafAsync = Promise.promisify(rimraf)
-
-const UUID = require('uuid')
 
 const User = require('./User')
 const Drive = require('./Drive')
@@ -170,6 +164,7 @@ class Fruitmix extends EventEmitter {
       stats: this.statsApi,
     }
 
+    /*
     // 绑定transmission
     if (opts.useTransmission) {
       // create Transmission directories
@@ -184,6 +179,7 @@ class Fruitmix extends EventEmitter {
 
       this.apis.transmission = this.transmission
     }
+    */
 
     // nfs api is optional
 /**
@@ -214,6 +210,7 @@ class Fruitmix extends EventEmitter {
       this.emit('FruitmixStarted')
     })
 
+    /* Samba && Dlna not support in current version, waiting for design  
     if (opts.useSmb) {
       this.samba = new Samba(opts, this.user, this.drive, this.vfs, this.nfs)
       this.apis.samba = this.samba
@@ -223,7 +220,7 @@ class Fruitmix extends EventEmitter {
       this.dlna = new Dlna(opts, this.user, this.drive, this.vfs)
       this.apis.dlna = this.dlna
     }
-
+    */
   }
 
   init (opts) {
@@ -237,24 +234,6 @@ class Fruitmix extends EventEmitter {
   cloudUsersUpdate(data) {
     if (this.user) {
       this.user.usersUpdate(data)
-    }
-  }
-
-  /**
-   * get userinfo by phicommUserId
-   * @param {string} phicommUserId - uuid
-   * @return {object} user - return active user
-   */
-  getUserByPhicommUserId (phicommUserId) {
-    for (const u of this.users) {
-      if (phicommUserId === u.phicommUserId && u.status === 'ACTIVE') {
-        return {
-          uuid: u.uuid,
-          username: u.username,
-          isFirstUser: u.isFirstUser,
-          phicommUserId: u.phicommUserId
-        }
-      }
     }
   }
 
