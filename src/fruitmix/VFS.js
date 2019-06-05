@@ -1196,7 +1196,7 @@ class VFS extends EventEmitter {
     // add countOnly && groupBy
     if (countOnly) {
       if (groupBy === 'place') {
-        results = new Map()
+        results = []
       } else{
         results = 0
       }
@@ -1223,11 +1223,13 @@ class VFS extends EventEmitter {
       if (countOnly) {
         if (groupBy === 'place') {
           let key = places[index]
-          results.set(key, results.has(key) ? results.get(key)++ : 1)
-        } else {
-          results ++
-        }
-        return
+          let result = results.find( x => x.key === key)
+          if (!result) {
+            return results.push({ key, count: 1 })
+          } else
+            return result.count ++
+        } else
+          return results ++
       }
 
       let namepath = file.nodepath().map(n => n.name).slice(uuids.indexOf(places[index]) + 1)
