@@ -1037,7 +1037,7 @@ class VFS extends EventEmitter {
     let order
     let startTime, startUUID, startExclusive
     let lastIndex, lastType, lastPath, fileOnly
-    let count, places, types, tags, name, namepath
+    let count, places, types, tags, name, namepath, countOnly, groupBy
 
     const EInval = message => process.nextTick(() => 
       callback(Object.assign(new Error(message), { status: 400 })))
@@ -1126,6 +1126,15 @@ class VFS extends EventEmitter {
       if (!Number.isInteger(count) || count <= 0) return EInval('invalid count')
     }
 
+    if (props.countOnly) {
+      countOnly = props.countOnly === 'true'
+    }
+
+    if (props.groupBy) {
+      if (props.groupBy !== 'place') return EInval('invalid groupBy')
+      groupBy = 'place'
+    }
+
     if (props.class) {
       if (!['image', 'video', 'audio', 'document'].includes(props.class)) return EInval('invalid class')
 
@@ -1152,7 +1161,7 @@ class VFS extends EventEmitter {
 
     if (order === 'newest' || order === 'oldest') {
       this.iterateList(user, { order, startTime, startUUID, startExclusive, 
-        count, places, types, tags, name, namepath }, callback)
+        count, places, types, tags, name, namepath, countOnly, groupBy }, callback)
     } else {
       fileOnly = props.fileOnly === 'true'
 
@@ -1180,10 +1189,18 @@ class VFS extends EventEmitter {
     debug('iterate', props)
 
     let { order, startTime, startUUID, startExclusive } = props
-    let { count, places, types, tags, name } = props
+    let { count, places, types, tags, name, countOnly, groupBy } = props
     let files = this.forest.timedFiles
-    let startIndex
+    let startIndex, results
     let arr = []
+    // add countOnly && groupBy
+    if (countOnly) {
+      if (groupBy === 'place') {
+        results = new Map()
+      } else{
+        results = 0
+      }
+    }
 
     const match = file => {
       if (name && !file.name.toLowerCase().includes(name.toLowerCase())) return
@@ -1202,6 +1219,16 @@ class VFS extends EventEmitter {
       let uuids = file.nodepath().map(n => n.uuid).slice(0, -1)
       let index = places.findIndex(place => uuids.includes(place))
       if (index === -1) return
+
+      if (countOnly) {
+        if (groupBy === 'place') {
+          let key = places[index]
+          results.set(key, results.has(key) ? results.get(key)++ : 1)
+        } else {
+          results ++
+        }
+        return
+      }
 
       let namepath = file.nodepath().map(n => n.name).slice(uuids.indexOf(places[index]) + 1)
       let xstat = {
@@ -1255,7 +1282,7 @@ class VFS extends EventEmitter {
       }
     }
 
-    process.nextTick(() => callback(null, arr))
+    process.nextTick(() => callback(null, countOnly ? { results } : arr))
   }
 
   /**
