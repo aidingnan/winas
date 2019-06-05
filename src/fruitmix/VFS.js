@@ -1193,6 +1193,9 @@ class VFS extends EventEmitter {
     let files = this.forest.timedFiles
     let startIndex, results
     let arr = []
+
+    let tmpF = this.TMPFILE()
+    let resultFd, writeComma = false
     // add countOnly && groupBy
     if (countOnly) {
       if (groupBy === 'place') {
@@ -1200,6 +1203,9 @@ class VFS extends EventEmitter {
       } else{
         results = 0
       }
+    } else {
+      resultFd = fs.createWriteStream(tmpF)
+      resultFd.write('{')
     }
 
     const match = file => {
@@ -1220,6 +1226,7 @@ class VFS extends EventEmitter {
       let index = places.findIndex(place => uuids.includes(place))
       if (index === -1) return
 
+      // client need count only
       if (countOnly) {
         if (groupBy === 'place') {
           let key = places[index]
@@ -1247,9 +1254,11 @@ class VFS extends EventEmitter {
         bctime: file.bctime,
         bmtime: file.bmtime,
         namepath 
-      } 
-
-      arr.push(xstat)
+      }
+      if (writeComma) resultFd.write(',')
+      resultFd.write(JSON.stringify(xstat))
+      writeComma = true // next need write comma first
+      // arr.push(xstat)
     }
     
     if (order === 'newest') { // reversed order
@@ -1284,7 +1293,14 @@ class VFS extends EventEmitter {
       }
     }
 
-    process.nextTick(() => callback(null, countOnly ? { results } : arr))
+    if (countOnly)
+      process.nextTick(() => callback(null, arr))
+    else
+      resultFd.write('}', err => {
+        if (err) return callback(err)
+        console.log(tmpF)
+        callback(null, tmpF)
+      })
   }
 
   /**
