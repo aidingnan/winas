@@ -1205,7 +1205,7 @@ class VFS extends EventEmitter {
       }
     } else {
       resultFd = fs.createWriteStream(tmpF)
-      resultFd.write('{')
+      resultFd.write('[')
     }
 
     const match = file => {
@@ -1296,10 +1296,9 @@ class VFS extends EventEmitter {
     if (countOnly)
       process.nextTick(() => callback(null, arr))
     else
-      resultFd.write('}', err => {
+      resultFd.write(']', err => {
         resultFd.close()
         if (err) return callback(err)
-        
         console.log(tmpF)
         callback(null, tmpF)
       })
