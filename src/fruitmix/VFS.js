@@ -1297,7 +1297,9 @@ class VFS extends EventEmitter {
       process.nextTick(() => callback(null, arr))
     else
       resultFd.write('}', err => {
+        resultFd.close()
         if (err) return callback(err)
+        
         console.log(tmpF)
         callback(null, tmpF)
       })
