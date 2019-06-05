@@ -1294,7 +1294,7 @@ class VFS extends EventEmitter {
     }
 
     if (countOnly)
-      process.nextTick(() => callback(null, arr))
+      process.nextTick(() => callback(null, results))
     else
       resultFd.write(']', err => {
         resultFd.close()
