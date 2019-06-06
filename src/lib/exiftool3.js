@@ -68,7 +68,7 @@ class ExifTool {
     this.spawn.stdin.write('-S\n')
     // FIX Orientation bug
     args.forEach(arg => {
-      if (arg === 'Orientation')
+      if (['Orientation', 'Duration', 'PlayDuration'].includes(arg))
         arg = arg + '#'
       this.spawn.stdin.write(`-${arg}\n`)
     })
