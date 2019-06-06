@@ -1,4 +1,5 @@
 const EventEmitter = require('events')
+const rimraf = require('rimraf')
 
 const Boot = require('../system/Boot')
 const Auth = require('../middleware/Auth')
@@ -271,8 +272,17 @@ class App extends EventEmitter {
         } else if (!data) {
           res.status(200).end()
         } else if (typeof data === 'string') {
-          if (opts.fileToJson) res.type('application/json')
-          res.status(200).sendFile(data, { dotfiles: 'allow'})
+          if (opts.fileToJson) {
+            // In this case, data was a tmpfile path
+            // this tmpfile contains the api response json
+            // Never forgot remove tmpfile after the response finished
+            res.type('application/json')
+            // FROM Express Doc: The callback `fn(err)` is invoked when the transfer is complete or when an error occurs
+            res.status(200).sendFile(data, { dotfiles: 'allow'}, () => {
+              rimraf(data, () => {}) // remove tmpfile
+            })
+          } else
+            res.status(200).sendFile(data, { dotfiles: 'allow'})
         } else {
           if (verb === 'LIST' && resource === 'nfs') {
             res.nolog = true
