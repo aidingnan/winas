@@ -4,6 +4,7 @@ const _ = require('lodash')
 const request = require('request')
 const path = require('path')
 const fs = require('fs')
+const rimraf = require('rimraf')
 const debug = require('debug')('wss:transform')
 
 const routing = require('./routing')
@@ -32,6 +33,7 @@ for (const k in routing) {
       path: path,
       verb: r[1],
       api: r[2],
+      opts: route[3],
       pathToRegexp: re,
       pathParttens: _.map(keys, 'name')
     })
@@ -243,6 +245,10 @@ class Pipe extends EventEmitter {
         if (err) return this.reqCommand(message, err)
         // Store
         if (typeof data === 'string' && path.isAbsolute(data)) {
+          if (matchRoute.opts && matchRoute.opts.fileToJson) {
+            // /file api return a jsonfile as json obj
+            return this.reqCommand(message, null, data)
+          }
           this.postResource(message, data)
         } else {
           // json
@@ -251,6 +257,7 @@ class Pipe extends EventEmitter {
       })
     }
   }
+
   /**
    * response command
    * @param {object} error
@@ -263,7 +270,11 @@ class Pipe extends EventEmitter {
       error = formatError(error)
       resErr = error
     }
-
+    //FIXME: !!!
+    if (typeof res === 'string') {
+      res = JSON.parse(fs.readFileSync(res))
+      rimraf(res, () => {})
+    }
     let uri = getURL(this.ctx.deviceSN(), message.sessionId, false)
     if (isFetch) uri += '/pipe/fetch'
     else if (isStore) uri += '/pipe/store'
