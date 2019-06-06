@@ -1192,10 +1192,11 @@ class VFS extends EventEmitter {
     let { count, places, types, tags, name, countOnly, groupBy } = props
     let files = this.forest.timedFiles
     let startIndex, results
-    let arr = []
 
     let tmpF = this.TMPFILE()
     let resultFd, writeComma = false
+    // matched file count
+    let findCounter = 0
     // add countOnly && groupBy
     if (countOnly) {
       if (groupBy === 'place') {
@@ -1226,6 +1227,7 @@ class VFS extends EventEmitter {
       let index = places.findIndex(place => uuids.includes(place))
       if (index === -1) return
 
+      findCounter++
       // client need count only
       if (countOnly) {
         if (groupBy === 'place') {
@@ -1275,7 +1277,7 @@ class VFS extends EventEmitter {
       }
       for (let i = startIndex; i >= 0; i--) {
         match(files.array[i])
-        if (count && arr.length >= count) break
+        if (count && findCounter >= count) break
       }
     } else {
       if (startTime === undefined) {
@@ -1289,7 +1291,7 @@ class VFS extends EventEmitter {
       }
       for (let i = startIndex; i < files.length; i++) {
         match(files.array[i])
-        if (count && arr.length >= count) break
+        if (count && findCounter >= count) break
       }
     }
 
