@@ -272,7 +272,7 @@ class App extends EventEmitter {
         } else if (!data) {
           res.status(200).end()
         } else if (typeof data === 'string') {
-          if (opts.fileToJson) {
+          if (opts && opts.fileToJson) {
             // In this case, data was a tmpfile path
             // this tmpfile contains the api response json
             // Never forgot remove tmpfile after the response finished

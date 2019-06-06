@@ -1168,7 +1168,7 @@ class VFS extends EventEmitter {
       let args = { order, lastIndex, lastType, lastPath, count, places, types, tags, name }
 
       let range = { lastIndex, lastType, lastPath, count }
-      let condition = { places, types, tags, name, fileOnly }
+      let condition = { places, types, tags, name, fileOnly, countOnly, groupBy }
 
       setImmediate(() => {
         let arr
@@ -1205,6 +1205,8 @@ class VFS extends EventEmitter {
         results = 0
       }
     } else {
+      // create tmpfile , write result in this file
+      // return this tmpfile
       resultFd = fs.createWriteStream(tmpF)
       resultFd.write('[')
     }
@@ -1301,7 +1303,6 @@ class VFS extends EventEmitter {
       resultFd.write(']', err => {
         resultFd.close()
         if (err) return callback(err)
-        console.log(tmpF)
         callback(null, tmpF)
       })
   }
@@ -1313,7 +1314,7 @@ class VFS extends EventEmitter {
   iterateTreeSync (user, range, condition) {
 
     let { lastIndex, lastType, lastPath, count } = range
-    let { places, types, tags, name, fileOnly } = condition
+    let { places, types, tags, name, fileOnly, countOnly, groupBy } = condition
     
     let roots = places.map(place => this.forest.uuidMap.get(place)) 
     let arr = []
