@@ -272,8 +272,9 @@ class Pipe extends EventEmitter {
     }
     //FIXME: !!!
     if (typeof res === 'string') {
+      rr = res
       res = JSON.parse(fs.readFileSync(res))
-      rimraf(res, () => {})
+      rimraf(rr, () => {})
     }
     let uri = getURL(this.ctx.deviceSN(), message.sessionId, false)
     if (isFetch) uri += '/pipe/fetch'
