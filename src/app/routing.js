@@ -54,7 +54,9 @@ module.exports = {
   file: {
     prefix: '/files',
     routes: [
-      ['/', 'LIST', 'file']
+      ['/', 'LIST', 'file', {
+        fileToJson: true
+      }]
     // ['/:fileUUID', 'GET', 'file']
     ]
   },

@@ -271,6 +271,7 @@ class App extends EventEmitter {
         } else if (!data) {
           res.status(200).end()
         } else if (typeof data === 'string') {
+          if (opts.fileToJson) res.type('application/json')
           res.status(200).sendFile(data, { dotfiles: 'allow'})
         } else {
           if (verb === 'LIST' && resource === 'nfs') {

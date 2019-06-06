@@ -1256,8 +1256,8 @@ class VFS extends EventEmitter {
         namepath 
       }
       if (writeComma) resultFd.write(',')
+      else writeComma = true // next need write comma first
       resultFd.write(JSON.stringify(xstat))
-      writeComma = true // next need write comma first
       // arr.push(xstat)
     }
     
