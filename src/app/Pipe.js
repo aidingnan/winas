@@ -272,7 +272,7 @@ class Pipe extends EventEmitter {
     }
     //FIXME: !!!
     if (typeof res === 'string') {
-      rr = res
+      let rr = res
       res = JSON.parse(fs.readFileSync(res))
       rimraf(rr, () => {})
     }
