@@ -33,7 +33,7 @@ for (const k in routing) {
       path: path,
       verb: r[1],
       api: r[2],
-      opts: route[3],
+      opts: r[3],
       pathToRegexp: re,
       pathParttens: _.map(keys, 'name')
     })
