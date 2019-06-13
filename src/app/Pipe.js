@@ -267,8 +267,7 @@ class Pipe extends EventEmitter {
   reqCommand (message, error, res, isFetch, isStore) {
     let resErr
     if (error) {
-      error = formatError(error)
-      resErr = error
+      resErr = formatError(error)
     }
     //FIXME: !!!
     if (typeof res === 'string') {
@@ -290,7 +289,12 @@ class Pipe extends EventEmitter {
       },
       body: true,
       json: {
-        error : resErr,
+        error : resErr&& {
+          message: resErr.message,
+          code: resErr.code,
+          status: resErr.code,
+          syscall: resErr.syscall
+        },
         data: res
       }
     }, (error, response, body) => {

@@ -14,10 +14,12 @@ const fileMeta = require('../../lib/file-meta')
 const WO_UUID = '13d20466-9893-4835-a436-1d4b3a0e26f7'
 const EINVAL = (message) => Object.assign(new Error(message), { code: 'EINVAL' })
 
+// use map to queue the same key(dirpath/filepath/internal-filepath) requests
 const lock = new Map()
 
 const FUNCS = {}
 
+// command pattern
 const call = (command, args, callback) => {
   let { target, dirPath, hash } = args
   let lockKey
@@ -32,16 +34,16 @@ const call = (command, args, callback) => {
   }
   let cb = (...args) => {
     let ops = lock.get(lockKey)
-    ops.shift() // clean self
+    ops.shift() // remove self from lock queue
     if (ops.length) schedule(lockKey)
     else {
-      lock.delete(lockKey)
+      lock.delete(lockKey) // delete the key-lock-queue from lock-map
     }
     process.nextTick(() => callback(...args))
   }
-  if (lock.has(lockKey)) {
+  if (lock.has(lockKey)) { // key-lock-queue ready exist in lock-map
     lock.get(lockKey).push({ command, args, cb })
-  } else {
+  } else { // create key-lock-queue in lock-map
     lock.set(lockKey, [{ command, args, cb }])
     schedule(lockKey)
   }
@@ -54,6 +56,8 @@ const schedule = (key) => {
   FUNCS[command](args, cb)
 }
 
+// if deleted === true, remove the target dir then create a empty dir as a deleted-stub
+// if forceDelete == true, remove the target dir then return(do not create stub)
 const updateDirAttr = ({ target, props }, callback) => {
   let { bctime, bmtime, metadata, bname, archived, deleted, forceDelete } = props || {}
   let attr = {}
@@ -79,7 +83,7 @@ const updateDirAttr = ({ target, props }, callback) => {
       rimraf(target, err => {
         if(err) return callback(err)
         if(forceDelete) return callback(null, xa)
-        mkdirp(target, err => {
+        mkdirp(target, err => { // create deleted-dir stub
           if(err) return callback(err)
           xattr.set(target, 'user.fruitmix', JSON.stringify(xa), err => {
             return err ? callback(err) : callback(null, xa)
@@ -121,7 +125,7 @@ const updateFileAttr = ({ dirPath, hash, fileUUID, props }, callback) => {
     if (index === -1) return callback(Object.assign(new Error('file not found')))
     let at = Object.assign({}, attrs.attrs[index])
     Object.assign(at, attr)
-    if (!attrs.hasOwnProperty('metadata')) {
+    if (!attrs.hasOwnProperty('metadata')) { // read metadata
       fileMeta(path.join(dirPath, hash), (err, metadata) => {
         if (err) {
           callback(err)
@@ -142,6 +146,8 @@ const updateFileAttr = ({ dirPath, hash, fileUUID, props }, callback) => {
 
 FUNCS.updateFileAttr = updateFileAttr
 
+// if there do not have any reference to the file
+// delete the file and the attr-file  
 const deleteFileAttr = ({ dirPath, hash, fileUUID }, callback) => {
   readFileAttrs(dirPath, hash, (err, attrs) => {
     if (err) return callback(err)
@@ -163,7 +169,7 @@ const deleteFileAttr = ({ dirPath, hash, fileUUID }, callback) => {
 
 FUNCS.deleteFileAttr = deleteFileAttr
 
-// bname can not update
+// bname can not be update
 const createDir = ({ target, attrs }, callback) => {
   let { uuid, metadata, bctime, bmtime, bname, deleted } = attrs
   if (typeof attrs.archived === 'boolean') attrs.archived = archived ? true : undefined // convert archived
@@ -213,6 +219,9 @@ const createDir = ({ target, attrs }, callback) => {
 
 FUNCS.createDir = createDir
 
+// if file size larger then 1G, maybe file is not upload completed, so we record file fingerpint
+// if file upload completed, fingerprint will be equal to file hash,
+// so clean fingerpint when hash ==- fingerprint
 const createFile = ({ tmp, dirPath, hash, attrs }, callback) => {
   let { uuid, archived, bctime, bmtime, fingerprint, bname, desc } = attrs
   if (attrs.name && !bname) bname = attrs.name
