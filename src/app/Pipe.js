@@ -292,7 +292,7 @@ class Pipe extends EventEmitter {
         error : resErr&& {
           message: resErr.message,
           code: resErr.code,
-          status: resErr.code,
+          status: resErr.status,
           syscall: resErr.syscall
         },
         data: res
