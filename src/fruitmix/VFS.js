@@ -1145,7 +1145,7 @@ class VFS extends EventEmitter {
       } else if (props.class === 'audio') {
         types = ['RA', 'WMA', 'MP3', 'MKA', 'WAV', 'APE', 'FLAC']
       } else if (props.class === 'document') {
-        types = ['DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'PDF']
+        types = ['DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'PDF', 'KEY', 'NUMBERS', 'PAGES']
       }
     } else if (props.types) {
       types = props.types.split('.')

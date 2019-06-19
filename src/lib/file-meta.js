@@ -147,7 +147,10 @@ const typeList = [
   ['XLSX', 2, docArgs],
   ['PPT', 2, docArgs],
   ['PPTX', 2, docArgs],
-  ['PDF', 2, docArgs]
+  ['PDF', 2, docArgs],
+  ['KEY', 2, docArgs],
+  ['NUMBERS', 2, docArgs],
+  ['PAGES', 2, docArgs]
 ]
 
 

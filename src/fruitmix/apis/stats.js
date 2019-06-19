@@ -3,7 +3,7 @@
 const ImageTypes = ['JPEG', 'PNG', 'GIF', 'BMP', 'TIFF']
 const VideoTypes = ['RM', 'RMVB', 'WMV', 'AVI', 'MPEG', 'MP4', '3GP', 'MOV', 'FLV', 'MKV']
 const AudioTypes = ['RA', 'WMA', 'MP3', 'OGG', 'MKA', 'WAV', 'APE', 'FLAC']
-const DocTypes = ['DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'PDF']
+const DocTypes = ['DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'PDF', 'KEY', 'NUMBERS', 'PAGES']
 
 class Stats {
   constructor (vfs) {
