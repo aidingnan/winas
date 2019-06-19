@@ -1139,7 +1139,7 @@ class VFS extends EventEmitter {
       if (!['image', 'video', 'audio', 'document'].includes(props.class)) return EInval('invalid class')
 
       if (props.class === 'image') {
-        types = ['JPEG', 'PNG', 'GIF', 'TIFF', 'BMP']
+        types = ['JPEG', 'PNG', 'GIF', 'TIFF', 'BMP', 'HEIC']
       } else if (props.class === 'video') {
         types = ['RM', 'RMVB', 'WMV', 'AVI', 'MPEG', 'MP4', '3GP', 'MOV', 'FLV', 'MKV']
       } else if (props.class === 'audio') {
