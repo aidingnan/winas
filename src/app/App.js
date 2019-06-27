@@ -173,6 +173,10 @@ class App extends EventEmitter {
       bootr.get('/space', (req, res, next) =>
         this.boot.GET_BoundVolume(req.user, (err, data) =>
           err ? next(err) : res.status(200).json(data)))
+
+      bootr.post('/', (req, res, next) =>
+        this.boot.format(req.body.target, (err, data) =>
+          err ? next(err) : res.status(200).json(data)))
     } else {
       bootr.get('/boundVolume/space', (req, res, next) =>
         this.boot.GET_BoundVolume(req.user, (err, data) =>

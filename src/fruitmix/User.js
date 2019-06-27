@@ -344,25 +344,26 @@ class User extends EventEmitter {
 
   bindFirstUser (boundUser) {
     this.storeSave(users => {
-      let index = users.findIndex(u => u.isFirstUser)
+      let winasUserId = boundUser.id
+      //FIXME: delete all firstuser flag
+      users = users.map(u => (u.isFirstUser = false, u))
+
+      let index = users.findIndex(u => u.winasUserId === winasUserId)
       if (index === -1) {
-        return [{
+        return [...users, {
           uuid: UUID.v4(),
           username: boundUser.username || 'admin',
           isFirstUser: true,
           status: USER_STATUS.ACTIVE,
-          winasUserId: boundUser.id,
+          winasUserId: winasUserId,
           phoneNumber: boundUser.phone
         }]
-      } else {
-        let firstUser = Object.assign({}, users[index])
-        if (firstUser.winasUserId !== boundUser.id) {
-          console.log('===================')
-          console.log('This is not an error, but fruitmix received a bound user')
-          console.log('different than the previous one, exit')
-          console.log('===================')
-          process.exit(67)
-        }
+      } else { // update user info 
+        let admin = users[index]
+        if (boundUser.username) admin.username = boundUser.username
+        if (boundUser.phone) admin.phoneNumber = boundUser.phone
+        admin.status = USER_STATUS.ACTIVE
+        admin.isFirstUser = true
         return [
           ...users.slice(0, index),
           firstUser,

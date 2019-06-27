@@ -108,6 +108,10 @@ class State {
     process.nextTick(() => callback(new Error('invalid state')))
   }
 
+  format (target, callback){
+    process.nextTick(() => callback(new Error('invalid state')))
+  }
+
   // TODO this is a pure function, or maybe static
   createBoundVolume (storage, volume, boundVolumeId) {
     let devices = volume.devices.map(dev => {
@@ -219,11 +223,88 @@ class Presetting extends State {
 
 class EmbedVolumeCheck extends State {
   enter() {
-    let volume = this.ctx.storage.blocks.find(v => v.fileSystemUUID !== '0cbc36fa-3b85-40af-946e-f15dce29d86b' && v.isUSB && !v.isMissing && v.isBtrfs)
-    if (!volume) {
-      return process.nextTick(() => this.setState(EmbedVolumeFailed, new Error('volume not found')))
+    let volume = this.ctx.storage.blocks.find(v => v.isUSB)
+    if (!volume) { // VolumeNotFound
+      return process.nextTick(() => this.setState(EmbedVolumeFailed,
+        Object.assign(new Error('volume not found'), { code: 'EVOLUMENOTFOUND'})))
     }
-    return process.nextTick(() => this.setState(Starting, volume))
+    if (!volume.isBtrfs) {
+      return process.nextTick(() => this.setState(EmbedVolumeFailed,
+        Object.assign(new Error('volume not found'), { code: 'EVOLUMEFORMAT'})))
+    }
+    if (volume.isMissing) {
+      return process.nextTick(() => this.setState(EmbedVolumeFailed,
+        Object.assign(new Error('volume not found'), { code: 'EVOLUMEMISS'})))
+    }
+    // validate uses.json && drives.json
+    let fruitmixDir = path.join(v.mountpoint, this.ctx.conf.storage.fruitmixDir)
+    fs.exists(fruitmixDir, exists => {
+      if (!exists) { // safe
+        this.setState(Starting, volume)
+      } else {
+        this.validateUserFile(fruitmixDir, err => {
+          if (err) {
+
+          } else {
+
+          }
+        })
+      }
+    })
+  }
+
+  // vaildate users.json
+  // if not exist / data validated safe
+  validateUserFile(fdir, callback) {
+    let ufile = path.join(fdir, 'users.json')
+    fs.exists(ufile, exists => {
+      if (!exists) return callback(null)
+      try{
+        let users = JSON.parse(fs.readFileSync(ufile))
+        if (!Array.isArray(users)) throw new Error('users.json format error')
+        let check = users.every(x => {
+          let propertys = Object.getOwnPropertyNames(x)
+          if (!propertys.includes('uuid') ||
+            !propertys.includes('winasUserId') ||
+            !propertys.includes('phoneNumber')) {
+              return false
+          }
+          // TODO: define each user all properties         
+          // return propertys.every(p => [].includes(p))
+          return true
+        })
+        if (!check) throw new Error('users.json format error')
+      } catch(e) {
+        return callback(e)
+      }
+      return callback(null)
+    })
+  }
+
+  validateDriveFile(fdir, callback) {
+    let dfile = path.join(fdir, 'drives.json')
+    fs.exists(dfile, exists => {
+      if (!exists) return callback(null)
+      try{
+        let drives = JSON.parse(fs.readFileSync(ufile))
+        if (!Array.isArray(drives)) throw new Error('drives.json format error')
+        let check = users.every(x => {
+          let propertys = Object.getOwnPropertyNames(x)
+          if (!propertys.includes('uuid') ||
+            !propertys.includes('type') ||
+            !propertys.includes('privacy')) {
+              return false
+          }
+          // TODO: define each user all properties         
+          // return propertys.every(p => [].includes(p))
+          return true
+        })
+        if (!check) throw new Error('drives.json format error')
+      } catch(e) {
+        return callback(e)
+      }
+      return callback(null)
+    })
   }
 }
 
@@ -235,6 +316,55 @@ class EmbedVolumeFailed extends State {
 
   storageUpdate() {
     this.setState(Probing)
+  }
+
+  format(target, callback) {
+    this.setState(EmbedVolumeInit, target, callback)
+  }
+}
+
+// FIXME: merge to `Initializing` state
+class EmbedVolumeInit extends State {
+  enter(target, callback) {
+    this.initAsync(target)
+      .then(_ => {
+        console.log('init success, go to Probing')
+        callback(null)
+        this.setState(Probing)
+      })
+      .catch(e => {
+        callback(e)
+        this.setState(Probing)
+      })
+  }
+
+  async initAsync() {
+    let storage = await probeAsync(this.ctx.conf.storage)
+    let block = storage.blocks.find(blk => blk.name === targe)
+    if (!block) throw new Error('target not found')
+    if (!block.isDisk) throw new Error(`device ${target[i]} is not a disk`)
+    if (block.unformattable) throw new Error(`device ${target[i]} is not formattable`)
+    let devname = block.devname
+    debug(`mkfs.btrfs single`, devname)
+
+    // step 2: unmount
+    await umountBlocksAsync(storage, [target])
+    // step 3: mkfs
+    await child.execAsync(`mkfs.btrfs -d single -f ${devname}`)
+    // step 4: probe again
+    storage = await probeAsync(this.ctx.conf.storage)
+
+    let block = storage.blocks.find(blk => blk.name === target)
+    if (!block) throw new Error('cannot find a volume containing expected block name')
+
+    let volume = storage.volumes.find(v => v.uuid === block.fileSystemUUID)
+    if (!volume) throw new Error('cannot find a volume containing expected block name')
+
+    // ensure bound volume data format
+    if (!volume.usage || !volume.usage.system || !volume.usage.metadata || !volume.usage.data) {
+      console.log(volume)
+      throw new Error('volume usage not properly detected')
+    }
   }
 }
 
@@ -1051,6 +1181,10 @@ class Boot extends EventEmitter {
   view () {
     return {
       state: this.state.constructor.name.toUpperCase(),
+      error: this.state.error ? {
+        message: this.state.error.message,
+        code: this.state.error.code
+      } : undefined,
       boundUser: this.boundUser ? {
         winasUserId: this.boundUser.id
       } : this.boundUser,
@@ -1088,6 +1222,10 @@ class Boot extends EventEmitter {
   
   uninstall (user, props,callback) {
     return process.nextTick(() => callback(new Error('Error Operation')))
+  }
+
+  format (target, callback) {
+    this.state.remove(target, callback)
   }
 
   // TODO: wait definition
