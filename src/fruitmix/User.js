@@ -366,7 +366,7 @@ class User extends EventEmitter {
         admin.isFirstUser = true
         return [
           ...users.slice(0, index),
-          firstUser,
+          admin,
           ...users.slice(index + 1)
         ]
       }

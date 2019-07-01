@@ -230,23 +230,31 @@ class EmbedVolumeCheck extends State {
     }
     if (!volume.isBtrfs) {
       return process.nextTick(() => this.setState(EmbedVolumeFailed,
-        Object.assign(new Error('volume not found'), { code: 'EVOLUMEFORMAT'})))
+        Object.assign(new Error('volume format error'), { code: 'EVOLUMEFORMAT'})))
     }
     if (volume.isMissing) {
       return process.nextTick(() => this.setState(EmbedVolumeFailed,
-        Object.assign(new Error('volume not found'), { code: 'EVOLUMEMISS'})))
+        Object.assign(new Error('volume missing'), { code: 'EVOLUMEMISS'})))
     }
     // validate uses.json && drives.json
-    let fruitmixDir = path.join(v.mountpoint, this.ctx.conf.storage.fruitmixDir)
+    let fruitmixDir = path.join(volume.mountpoint, this.ctx.conf.storage.fruitmixDir)
     fs.exists(fruitmixDir, exists => {
       if (!exists) { // safe
         this.setState(Starting, volume)
       } else {
         this.validateUserFile(fruitmixDir, err => {
           if (err) {
-
+            return process.nextTick(() => this.setState(EmbedVolumeFailed,
+              Object.assign(new Error('volume has users.json but data parse error'), { code: 'EVOLUMEFILE'})))
           } else {
-
+            this.validateDriveFile(fruitmixDir, err => {
+              if (err) {
+                return process.nextTick(() => this.setState(EmbedVolumeFailed,
+                  Object.assign(new Error('volume has drives.json but data parse error'), { code: 'EVOLUMEFILE'})))
+              } else { // all passed
+                this.setState(Starting, volume)
+              }
+            })
           }
         })
       }
@@ -286,9 +294,9 @@ class EmbedVolumeCheck extends State {
     fs.exists(dfile, exists => {
       if (!exists) return callback(null)
       try{
-        let drives = JSON.parse(fs.readFileSync(ufile))
+        let drives = JSON.parse(fs.readFileSync(dfile))
         if (!Array.isArray(drives)) throw new Error('drives.json format error')
-        let check = users.every(x => {
+        let check = drives.every(x => {
           let propertys = Object.getOwnPropertyNames(x)
           if (!propertys.includes('uuid') ||
             !propertys.includes('type') ||
@@ -310,7 +318,7 @@ class EmbedVolumeCheck extends State {
 
 class EmbedVolumeFailed extends State {
   enter (err) {
-    this.err = err
+    this.error = err
     console.log('EmbedVolumeFailed', err)
   }
 
@@ -338,12 +346,12 @@ class EmbedVolumeInit extends State {
       })
   }
 
-  async initAsync() {
+  async initAsync(target) {
     let storage = await probeAsync(this.ctx.conf.storage)
-    let block = storage.blocks.find(blk => blk.name === targe)
+    let block = storage.blocks.find(blk => blk.name === target)
     if (!block) throw new Error('target not found')
-    if (!block.isDisk) throw new Error(`device ${target[i]} is not a disk`)
-    if (block.unformattable) throw new Error(`device ${target[i]} is not formattable`)
+    if (!block.isDisk) throw new Error(`device ${target} is not a disk`)
+    if (block.unformattable) throw new Error(`device ${target} is not formattable`)
     let devname = block.devname
     debug(`mkfs.btrfs single`, devname)
 
@@ -354,7 +362,7 @@ class EmbedVolumeInit extends State {
     // step 4: probe again
     storage = await probeAsync(this.ctx.conf.storage)
 
-    let block = storage.blocks.find(blk => blk.name === target)
+    block = storage.blocks.find(blk => blk.name === target)
     if (!block) throw new Error('cannot find a volume containing expected block name')
 
     let volume = storage.volumes.find(v => v.uuid === block.fileSystemUUID)
@@ -1225,7 +1233,7 @@ class Boot extends EventEmitter {
   }
 
   format (target, callback) {
-    this.state.remove(target, callback)
+    this.state.format(target, callback)
   }
 
   // TODO: wait definition
