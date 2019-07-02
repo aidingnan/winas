@@ -565,6 +565,24 @@ Boot资源的基础属性如下，在任何状态下都具有这些属性：
 
 + Response 200
 
+### 格式化磁盘 [POST]
+
+`Winas`开机如果发现内置磁盘卷出现问题，
+Boot状态会由EmbedVolumeCheck迁移并停留在EmbedVolumeFailed状态(通过GET api 获取)
+错误类型(code)如下所示:
++ EVOLUMENOTFOUND -- 磁盘未找到
++ EVOLUMEFORMAT -- 磁盘非btrfs格式
++ EVOLUMEMISS -- 磁盘卷不完整
++ EVOLUMEFILE -- 磁盘内关键文件损坏(users.json/drives.json)
+
++ Request 关机 (application/json)
+
+            {
+                "target": "sda"
+            }
+
++ Response 200
+
 ## 绑定磁盘卷 [/boot/boundVolume]
 
 以下API要求客户端提供token，仅限设备管理员访问。
