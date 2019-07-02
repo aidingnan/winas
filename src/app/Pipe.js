@@ -168,6 +168,9 @@ class Pipe extends EventEmitter {
           else if (verb.toUpperCase() === 'PATCH') {
             return this.ctx.boot.PATCH_BOOT(user, body, err => this.reqCommand(message, err, {}))
           }
+          else if (verb.toUpperCase() === 'POST') {
+            return this.ctx.boot.POST(user, body, err => this.reqCommand(message, err, {}))
+          }
           throw formatError(new Error('not found'), 404)
         } else if (paths.length === 3) {
           if (verb.toUpperCase() === 'GET' && paths[paths.length -1] === 'space')

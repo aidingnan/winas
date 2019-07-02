@@ -17,7 +17,6 @@ const DataStore = require('../lib/DataStore')
 const Fruitmix = require('../fruitmix/Fruitmix')
 const { probe, probeAsync, umountBlocksAsync } = require('./storage')
 const { UdevMonitor, StorageUpdater } = require('./diskmon')
-const btrfsUsageAsync = require('./btrfsusageAsync')
 
 /**
 Boot is the top-level container
@@ -242,11 +241,13 @@ class EmbedVolumeCheck extends State {
       if (!exists) { // safe
         this.setState(Starting, volume)
       } else {
+        // check users.json
         this.validateUserFile(fruitmixDir, err => {
           if (err) {
             return process.nextTick(() => this.setState(EmbedVolumeFailed,
               Object.assign(new Error('volume has users.json but data parse error'), { code: 'EVOLUMEFILE'})))
           } else {
+            // check drives.json
             this.validateDriveFile(fruitmixDir, err => {
               if (err) {
                 return process.nextTick(() => this.setState(EmbedVolumeFailed,
@@ -1289,6 +1290,11 @@ class Boot extends EventEmitter {
     let target = props.target
     let mode = props.mode
     this.init(target, mode, callback)
+  }
+
+  POST (user, props, callback) {
+    let target = props.target
+    this.format(target, callback)
   }
 
   PATCH_BOOT (user, props, callback) {
