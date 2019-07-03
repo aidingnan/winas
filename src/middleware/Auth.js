@@ -92,7 +92,7 @@ class Auth {
     if (this.users.length === 0) {
       done(null, false, { message: 'not available' })
     } else {
-      let user = payload.uuid ? this.users.find(u => u.uuid === payload.uuid) : this.users.find(u => u.phicommUserId === payload.phicommUserId)
+      let user = payload.uuid ? this.users.find(u => u.uuid === payload.uuid) : this.users.find(u => u.winasUserId === payload.winasUserId)
       if (!user) {
         done(null, false, { message: 'user not found' })
       } else if (user.status !== 'ACTIVE') {

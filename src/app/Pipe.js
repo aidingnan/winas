@@ -91,12 +91,9 @@ class Pipe extends EventEmitter {
    * @return {object} user
    */
   checkUser (winasUserId) {
-    let user
-    if (!this.ctx.fruitmix()) {
-      user = null
-    } else {
-      user = this.ctx.fruitmix().getUserByWinasUserId(winasUserId)
-    }
+    if (!this.ctx.fruitmix())
+      throw formatError(new Error(`fruitmix not ready`), 503)
+    let user = this.ctx.fruitmix().getUserByWinasUserId(winasUserId)
     if (!user) throw formatError(new Error(`uid: ${winasUserId}, check user failed`), 401)
     // throw 503 unavailable if fruitmix === null
     return Object.assign({}, user, { remote: true })
@@ -144,44 +141,22 @@ class Pipe extends EventEmitter {
   handleMessage (message) {
     try {
       this.checkMessage(message)
-      const user = this.checkUser(message.user.id)
-      // reponse to cloud
       const { urlPath, verb, body, params, headers } = message
       const paths = urlPath.split('/') // ['', 'drives', '123', 'dirs', '456']
       const resource = WHITE_LIST[paths[1]]
-      if (!resource) {
-        throw formatError(new Error(`this resource: ${resource}, not support`), 400)
-      }
 
-      if (!headers || !headers['cookie']) {
-        throw formatError(new Error(`headers error`), 400)
-      }
+      if (!resource) throw formatError(new Error(`this resource: ${resource}, not support`), 400)
 
-      // 由于 token 没有 route， 单独处理 token
-      if (resource === 'token') {
-        return this.reqCommand(message, null, this.getToken(user))
-      }
-      // 单独处理 boot
-      if (resource === 'boot') {
-        if (paths.length === 2) {
-          if (verb.toUpperCase() === 'GET') return this.reqCommand(message, null, this.getBootInfo())
-          else if (verb.toUpperCase() === 'PATCH') {
-            return this.ctx.boot.PATCH_BOOT(user, body, err => this.reqCommand(message, err, {}))
-          }
-          else if (verb.toUpperCase() === 'POST') {
-            return this.ctx.boot.POST(user, body, err => this.reqCommand(message, err, {}))
-          }
-          throw formatError(new Error('not found'), 404)
-        } else if (paths.length === 3) {
-          if (verb.toUpperCase() === 'GET' && paths[paths.length -1] === 'space')
-            return this.ctx.boot.GET_BoundVolume(user, (err, data) => {
-              this.reqCommand(message, err, data)
-            })
-          throw formatError(new Error('not found'), 404)
-        }
-        throw formatError(new Error('not found'), 404)
-      }
+      if (!headers || !headers['cookie']) throw formatError(new Error(`headers error`), 400)
 
+      if (['token', 'boot'].includes(resource))
+        return this.hijackMessage({
+          resource, message, 
+          user:{ winasUserId:message.user.id },
+          paths, verb, body
+        })
+      
+      this.checkUser(message.user.id)
       // match route path
       const matchRoutes = []
       for (const route of routes) {
@@ -217,6 +192,34 @@ class Pipe extends EventEmitter {
       this.reqCommand(message, err)
     }
   }
+
+  hijackMessage({ resource, message, user, paths, verb, body }){
+    // 由于 token 没有 route， 单独处理 token
+    if (resource === 'token') {
+      return this.reqCommand(message, null, this.getToken(user))
+    }
+    // 单独处理 boot
+    if (resource === 'boot') {
+      if (paths.length === 2) {
+        if (verb.toUpperCase() === 'GET') return this.reqCommand(message, null, this.getBootInfo())
+        else if (verb.toUpperCase() === 'PATCH') {
+          return this.ctx.boot.PATCH_BOOT(user, body, err => this.reqCommand(message, err, {}))
+        }
+        else if (verb.toUpperCase() === 'POST') {
+          return this.ctx.boot.POST(user, body, err => this.reqCommand(message, err, {}))
+        }
+        throw formatError(new Error('not found'), 404)
+      } else if (paths.length === 3) {
+        if (verb.toUpperCase() === 'GET' && paths[paths.length -1] === 'space')
+          return this.ctx.boot.GET_BoundVolume(user, (err, data) => {
+            this.reqCommand(message, err, data)
+          })
+        throw formatError(new Error('not found'), 404)
+      }
+      throw formatError(new Error('not found'), 404)
+    }
+  }
+
   /**
    * local apis
    * @param {object} opts
