@@ -300,8 +300,7 @@ class EmbedVolumeCheck extends State {
         let check = drives.every(x => {
           let propertys = Object.getOwnPropertyNames(x)
           if (!propertys.includes('uuid') ||
-            !propertys.includes('type') ||
-            !propertys.includes('privacy')) {
+            !propertys.includes('type')) {
               return false
           }
           // TODO: define each user all properties         
