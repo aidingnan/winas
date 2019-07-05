@@ -6,14 +6,14 @@ const UUID = require('uuid')
 
 const mkdirp = require('mkdirp')
 const getArgs = require('get-args')
-const config = require('config')
+const Config = require('config')
 
 const { passwordEncrypt } = require('./lib/utils')
 const configurations = require('./configurations')
 const Fruitmix = require('./fruitmix/Fruitmix')
 const App = require('./app/App')
 
-global.GLOBAL_CONFIG = config
+global.GLOBAL_CONFIG = Config
 
 /**
 This is the entry point of the program.
@@ -54,34 +54,31 @@ let fruitmixOpts = {
 }
 
 // in standalone mode
-if (args.standalone) {
-  if (args['fruitmix-only']) {
-    if (args['fruitmix-dir']) {
-      fruitmixOpts.fruitmixDir = args['fruitmix-dir']
+if (args['fruitmix-only']) {
+  if (args['fruitmix-dir']) {
+    fruitmixOpts.fruitmixDir = args['fruitmix-dir']
 
-    } else {
-      let cwd = process.cwd()
-      let tmptest = path.join(cwd, 'tmptest')
-      mkdirp.sync(tmptest)
-      fruitmixOpts.fruitmixDir = tmptest
-    }
-
-    let fruitmix = new Fruitmix(fruitmixOpts)
-    let app = new App({
-      fruitmix,
-      useServer: true,
-    })
   } else {
-    let configuration = process.env.DEVICE_TYPE === 'winas' ? configurations.wisnuc.winas
-        : configurations.wisnuc.default
-    fruitmixOpts.useSmb = !!args.smb || configuration.smbAutoStart
-    fruitmixOpts.useDlna = !!args.dlna || configuration.dlnaAutoStart
-    let app = new App({
-      fruitmixOpts,
-      configuration,
-      useAlice: !!args['alice'],
-      useServer: true,
-      listenProcess: true
-    })
+    let cwd = process.cwd()
+    let tmptest = path.join(cwd, 'tmptest')
+    mkdirp.sync(tmptest)
+    fruitmixOpts.fruitmixDir = tmptest
   }
+
+  let fruitmix = new Fruitmix(fruitmixOpts)
+  let app = new App({
+    fruitmix,
+    useServer: true,
+  })
+} else {
+  let configuration = configurations.wisnuc.winas
+  fruitmixOpts.useSmb = !!args.smb || configuration.smbAutoStart
+  fruitmixOpts.useDlna = !!args.dlna || configuration.dlnaAutoStart
+  let app = new App({
+    fruitmixOpts,
+    configuration,
+    useAlice: !!args['alice'],
+    useServer: true,
+    listenProcess: true
+  })
 }
