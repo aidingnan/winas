@@ -6,7 +6,7 @@ const child = Promise.promisifyAll(require('child_process'))
 const crypto = require('crypto')
 
 const bcrypt = require('bcrypt')
-const crypt3 = require('crypt3')
+const crypt3 = {}
 const UUID = require('uuid')
 
 let tmpNum = 0
