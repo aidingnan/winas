@@ -156,7 +156,7 @@ class Pipe extends EventEmitter {
           paths, verb, body
         })
       
-      this.checkUser(message.user.id)
+      const user = this.checkUser(message.user.id)
       // match route path
       const matchRoutes = []
       for (const route of routes) {
