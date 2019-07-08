@@ -334,6 +334,14 @@ class EmbedVolumeFailed extends State {
 // FIXME: merge to `Initializing` state
 class EmbedVolumeInit extends State {
   enter(target, callback) {
+    if (!target) { // find default target
+      let volume = this.ctx.storage.blocks.find(v => v.isUSB)
+      if (!volume) {
+        callback('target not found')
+        return this.setState(Probing)
+      } else
+        target = volume.name
+    }
     this.initAsync(target)
       .then(_ => {
         console.log('init success, go to Probing')
