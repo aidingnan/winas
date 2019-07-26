@@ -128,7 +128,7 @@ const mountVolumesAsync = async (volumeDir, volumes, mounts) => {
 
       const cmd = vol.missing
         ? `mount -t btrfs -o degraded,ro UUID=${vol.uuid} ${mountpoint}`
-        : `mount -t btrfs -o autodefrag UUID=${vol.uuid} ${mountpoint}`
+        : `mount -t btrfs -o commit=3 UUID=${vol.uuid} ${mountpoint}`
 
       await child.execAsync(cmd)
     } catch (e) {
