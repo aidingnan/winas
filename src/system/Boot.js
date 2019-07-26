@@ -1280,7 +1280,7 @@ class Boot extends EventEmitter {
     }
   }
 
-  ejectUSB　(target, callback) {
+  ejectUSB(target, callback) {
     this.ejectUSBAsync(target)
       .then(() => callback(null))
       .catch(e => callback(e))
