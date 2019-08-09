@@ -1,6 +1,6 @@
 {
   "type": "winas",
   "pipe": {
-    "baseURL": "https://test.aidingnan.com"
+    "baseURL": "https://aws-cn.aidingnan.com"
   }
 }

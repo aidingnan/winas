@@ -6,6 +6,7 @@ const { passwordEncrypt, md4Encrypt } = require('../lib/utils') // eslint-disabl
 const request = require('superagent')
 const debug = require('debug')('appifi:user')
 const assert = require('assert')
+const Config = require('config')
 
 const USER_STATUS = {
   ACTIVE: 'ACTIVE',
@@ -89,7 +90,7 @@ class Reading extends Base {
 
   fetch() {
     this.request = request
-      .get(`${GLOBAL_CONFIG.pipe.baseURL}/s/v1/station/user`)
+      .get(`${Config.pipe.baseURL}/s/v1/station/user`)
       .set('Authorization', (this.user.cloudConf && this.user.cloudConf.cloudToken) || '')
       .end((err, res) => {
         if (err || !res.ok) {
