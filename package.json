@@ -45,7 +45,7 @@
     "fast-deep-equal": "^2.0.1",
     "file-type": "^10.7.0",
     "form-data": "^2.3.3",
-    "fs-xattr": "^0.3.0",
+    "fs-xattr": "^0.2.1",
     "get-args": "^2.0.0",
     "ioctl": "^2.0.2",
     "jwt-simple": "^0.5.5",
