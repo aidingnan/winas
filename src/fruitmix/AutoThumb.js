@@ -261,8 +261,8 @@ class AutoThumb extends EventEmitter {
     this.workerCount = 1
   }
 
-  onTaskStreamError() { // renew
-    this.tasksStream = fs.createWriteStream(this.tasksP)
+  onTaskStreamError(...args) { // renew
+    this.tasksStream = fs.createWriteStream(this.tasksP, { flags: 'a+' })
     this.tasksStream.write('\n')
     this.tasksStream.on('error', this.onTaskStreamError.bind(this))
     this.tasksStream.on('close', this.onTaskStreamError.bind(this))
@@ -279,14 +279,12 @@ class AutoThumb extends EventEmitter {
     if (this.scheduling) return
     if (this.destroyed) return
     this.scheduling = true
-    
     const exit = closed => {
       if (!closed) {
         rl.removeAllListeners()
         rl.on('close', () => { })
         rl.close()
       }
-      console.log('exit', closed)
       this.scheduling = false
     }
 
@@ -294,7 +292,6 @@ class AutoThumb extends EventEmitter {
       input: fs.createReadStream(this.tasksP, { start: this.fseek })
     })
     rl.on('line', line => {
-      console.log(line)
       if (this.destroyed) return exit()
       if (this.working.length >= this.workerCount) return exit()
       let l = line.toString()
@@ -318,7 +315,9 @@ class AutoThumb extends EventEmitter {
   }
 
   destroy() {
-    this.tasksStream.close()
+    this.tasksStream.removeAllListeners()
+    this.tasksStream.on('error', () => {})
+    this.tasksStream.end()
     this.destroyed = true
   }
 }

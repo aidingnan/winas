@@ -149,6 +149,28 @@ describe('test AutoThumb module', () => {
     })
   })
 
+  it('should renew tasksStream if it close', function(done) {
+    this.timeout(10000000)
+    let tasksStream = autoThumb.tasksStream
+    tasksStream.write('12345\n')
+    tasksStream.write('1.auto.thumb.3.auto.thumb.4\n')
+    tasksStream.write('\n')
+    tasksStream.write('\n')
+    autoThumb.req(path.join(testdata, fackfile.name), fackfile.metadata, fackfile.hash)
+    testfiles.forEach(x => autoThumb.req(path.join(testdata, x.name), x.metadata, x.hash))
+    tasksStream.end()
+    
+    testfiles.forEach(x => autoThumb.req(path.join(testdata, x.name), x.metadata, x.hash))
+    autoThumb.req(path.join(testdata, fackfile.name), fackfile.metadata, fackfile.hash)
+    let count = testfiles.length + 2 
+    autoThumb.on('workFinished', (...args) => {
+      if (--count === 0) {
+        fs.readdir(thumbDir, console.log)
+        done()
+      }
+    })
+  })
+
   afterEach(() => {
     autoThumb.destroy()
   })
