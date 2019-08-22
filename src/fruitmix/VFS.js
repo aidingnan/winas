@@ -27,6 +27,7 @@ const Node = require('./vfs/node')
 const File = require('./vfs/file')
 const Directory = require('./vfs/directory')
 const Backup = require('./backup/backup')
+const AutoThumb = require('./AutoThumb')
 
 const { btrfsConcat, btrfsClone, btrfsClone2 } = require('../lib/btrfs')
 
@@ -120,7 +121,14 @@ class VFS extends EventEmitter {
     this.tag = tag
     Object.defineProperty(this, 'tags', { get () { return this.tag.tags } })
     
-    this.forest = new Forest(this.fruitmixDir, opts.mediaMap)
+    this.autoThumb = new AutoThumb(path.join(this.fruitmixDir, 'thumbnail'), this.tmpDir, {
+      width: 1080,
+      height: 1080,
+      autoOrient: 'true',
+      modifier: 'caret'
+    })
+
+    this.forest = new Forest(this.fruitmixDir, opts.mediaMap, this.autoThumb)
     this.metaMap = this.forest.metaMap
     this.timeMap = this.forest.timeMap
 

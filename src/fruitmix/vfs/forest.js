@@ -114,8 +114,11 @@ In either case, a `read` on the `Directory` object is enough.
 
 class Forest extends EventEmitter {
 
-  constructor (froot, mediaMap) {
+  constructor (froot, mediaMap, autoThumb) {
     super()
+
+    // Automatically generate thumbnails
+    this.autoThumb = autoThumb
 
     /**
     Absolute path of Fruitmix drive directory  TODO
@@ -232,6 +235,9 @@ class Forest extends EventEmitter {
     // this.mediaMap.indexFile(file)
 
     if (file.metadata) {
+      // call autoThumb to generate thumbnail in background
+      this.autoThumb.req(file.abspath(), file.metadata, file.hash)
+
       if (this.metaMap.has(file.hash)) {
         let val = this.metaMap.get(file.hash)
         val.files.push(file)

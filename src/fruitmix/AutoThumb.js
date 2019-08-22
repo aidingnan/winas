@@ -176,8 +176,15 @@ class Worker extends EventEmitter {
     if (isVideo) this.query.autoOrient = undefined
     const opts = parseQuery(this.query)
     const key = genKey(this.sha256, opts)
-    isVideo ? this._convertVideo(opts, key, callback)
-      : this._convert(opts, key, callback)
+    const tp = path.join(this.thumbDir, key)
+    fs.lstat(tp, err => {
+      if (err && err.code === 'ENOENT') {
+        isVideo ? this._convertVideo(opts, key, callback)
+          : this._convert(opts, key, callback)
+      } else {
+        process.nextTick(() => callback(null, tp))
+      }
+    })
   }
 
   _convertVideo(opts, key, callback) {
