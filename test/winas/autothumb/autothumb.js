@@ -13,8 +13,8 @@ const should = chai.should()
 const AutoThumb = require('src/fruitmix/AutoThumb')
 
 const query = {
-  width: 200,
-  height: 200,
+  width: 1080,
+  height: 1080,
   autoOrient: 'true',
   modifier: 'caret'
 }
@@ -112,7 +112,7 @@ describe('test AutoThumb module', () => {
   })
 
   it('create thumbs', function(done) {
-    this.timeout(1000 * 30)
+    this.timeout(1000 * 300)
     testfiles.forEach(x => autoThumb.req(path.join(testdata, x.name), x.metadata, x.hash))
     let count = testfiles.length
     autoThumb.on('workFinished', (...args) => {
@@ -124,7 +124,7 @@ describe('test AutoThumb module', () => {
   })
 
   it('should pass not found file', function(done) {
-    this.timeout(1000 * 30)
+    this.timeout(1000 * 300)
     autoThumb.req(path.join(testdata, fackfile.name), fackfile.metadata, fackfile.hash)
     autoThumb.on('workFinished', (sha256, err, path) => {
       expect(err.code).to.equal('ENOENT')
@@ -133,6 +133,7 @@ describe('test AutoThumb module', () => {
   })
 
   it('should pass error line', function(done) {
+    this.timeout(1000 * 300)
     let tasksStream = autoThumb.tasksStream
     tasksStream.write('12345\n')
     tasksStream.write('1.auto.thumb.3.auto.thumb.4\n')
@@ -142,7 +143,7 @@ describe('test AutoThumb module', () => {
     testfiles.forEach(x => autoThumb.req(path.join(testdata, x.name), x.metadata, x.hash))
     let count = testfiles.length
     autoThumb.on('workFinished', (...args) => {
-      if (--count === 0) {
+      if (--count === 0) {      
         fs.readdir(thumbDir, console.log)
         done()
       }
@@ -162,7 +163,7 @@ describe('test AutoThumb module', () => {
     
     testfiles.forEach(x => autoThumb.req(path.join(testdata, x.name), x.metadata, x.hash))
     autoThumb.req(path.join(testdata, fackfile.name), fackfile.metadata, fackfile.hash)
-    let count = testfiles.length + 2 
+    let count = testfiles.length
     autoThumb.on('workFinished', (...args) => {
       if (--count === 0) {
         fs.readdir(thumbDir, console.log)
