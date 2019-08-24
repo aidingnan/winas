@@ -58,7 +58,7 @@ class MediaApi {
         let q  = {}
         if (props.width) q.width = props.width 
         if (props.height) q.height = props.height
-        if (props.modifiers) q.modifiers = props.modifiers
+        if (props.modifier) q.modifier = props.modifier
         if (props.autoOrient) q.autoOrient = props.autoOrient
         if (props.colors) q.colors = props.colors
         
