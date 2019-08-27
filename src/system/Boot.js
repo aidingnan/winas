@@ -281,7 +281,7 @@ class EmbedVolumeCheck extends State {
           rimraf(tmpswapfile, _ => {
             child.exec(`touch ${tmpswapfile};
               chattr +C ${tmpswapfile};
-              dd if=/dev/zero of=${tmpswapfile} bs=1M count=4096;
+              dd if=/dev/zero of=${tmpswapfile} bs=1M count=4096 status=none;
               chmod 600 ${tmpswapfile};
               mkswap -f ${tmpswapfile};
               mv  ${tmpswapfile} ${swapfile};
