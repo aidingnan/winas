@@ -179,8 +179,10 @@ class Worker extends EventEmitter {
     const tp = path.join(this.thumbDir, key)
     fs.lstat(tp, err => {
       if (err && err.code === 'ENOENT') {
-        isVideo ? this._convertVideo(opts, key, callback)
-          : this._convert(opts, key, callback)
+        // isVideo ? this._convertVideo(opts, key, callback)
+        //   : this._convert(opts, key, callback)
+        if (isVideo) return callback(new Error('unsupported'))
+        this._convert(opts, key, callback)
       } else {
         process.nextTick(() => callback(null, tp))
       }
