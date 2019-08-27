@@ -29,6 +29,7 @@ const argList = [
   ['CreateDate', '', 'date'],
   ['DateTimeOriginal', '', 'dateo'],
   ['CreationDate', '', 'datec'],
+  ['DateAcquired', '', 'datea'],
   ['Make', '', 'make'],
   ['Model', '', 'model'],
   ['GPSPosition', '', 'gps'],
@@ -67,6 +68,7 @@ const stillImageProps = Object.freeze([
   'Orientation',
   'CreateDate',
   'CreationDate',
+  'DateAcquired',
   'Make',
   'Model',
   'GPSPosition' 
@@ -83,6 +85,7 @@ const videoArgs = Object.freeze([
   'CreateDate',
   'CreationDate',
   'DateTimeOriginal',
+  'DateAcquired',
   'Make',
   'Model',
   'GPSPosition',
