@@ -235,6 +235,7 @@ class EmbedVolumeCheck extends State {
       return process.nextTick(() => this.setState(EmbedVolumeFailed,
         Object.assign(new Error('volume missing'), { code: 'EVOLUMEMISS'})))
     }
+    this.mountSwapfile(volume.mountpoint, err => console.log('Mount swapfile: ', err || 'success'))
     // validate uses.json && drives.json
     let fruitmixDir = path.join(volume.mountpoint, this.ctx.conf.storage.fruitmixDir)
     fs.exists(fruitmixDir, exists => {
@@ -259,6 +260,38 @@ class EmbedVolumeCheck extends State {
           }
         })
       }
+    })
+  }
+
+  mountSwapfile(mountpoint, callback) {
+    const swapfile = path.join(mountpoint, 'swapfile')
+    const tmpswapfile = path.join(mountpoint, 'tmpswapfile')
+    child.exec('cat /proc/swaps', (err, stdout, stderr) => {
+      if (err || stderr) return callback(err || new Error(stderr))
+      if (stdout.toString().indexOf(swapfile) !== -1) return callback(null)// exist
+      fs.lstat(swapfile, err => {
+        if (!err) { // swapfile ready create
+          child.exec(`swapon ${swapfile}`, (err, stdout, stderr) =>
+            callback((err || stderr) ? (err || new Error(stderr))
+              : null))
+        } else {
+          // create swapfile
+          // btrfs swapfile need NoCOW
+          // https://superuser.com/questions/1067150/how-to-create-swapfile-on-ssd-disk-with-btrfs/1411462#1411462
+          rimraf(tmpswapfile, _ => {
+            child.exec(`touch ${tmpswapfile};
+              chattr +C ${tmpswapfile};
+              dd if=/dev/zero of=${tmpswapfile} bs=1M count=4096;
+              chmod 600 ${tmpswapfile};
+              mkswap -f ${tmpswapfile};
+              mv  ${tmpswapfile} ${swapfile};
+              swapon ${swapfile}
+              `, (err, stdout, stderr) =>
+                callback((err || stderr) ? (err || new Error(stderr))
+                : null))
+          })
+        }
+      })
     })
   }
 
