@@ -279,7 +279,8 @@ class EmbedVolumeCheck extends State {
           // btrfs swapfile need NoCOW
           // https://superuser.com/questions/1067150/how-to-create-swapfile-on-ssd-disk-with-btrfs/1411462#1411462
           rimraf(tmpswapfile, _ => {
-            child.exec(`touch ${tmpswapfile};
+            child.exec(`set -e;
+              touch ${tmpswapfile};
               chattr +C ${tmpswapfile};
               dd if=/dev/zero of=${tmpswapfile} bs=1M count=4096 status=none;
               chmod 600 ${tmpswapfile};
