@@ -235,7 +235,7 @@ class EmbedVolumeCheck extends State {
       return process.nextTick(() => this.setState(EmbedVolumeFailed,
         Object.assign(new Error('volume missing'), { code: 'EVOLUMEMISS'})))
     }
-    this.mountSwapfile(volume.mountpoint, err => console.log('Mount swapfile: ', err || 'success'))
+
     // validate uses.json && drives.json
     let fruitmixDir = path.join(volume.mountpoint, this.ctx.conf.storage.fruitmixDir)
     fs.exists(fruitmixDir, exists => {
