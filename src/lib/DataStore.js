@@ -2,6 +2,7 @@ const Promise = require('bluebird')
 const path = require('path')
 const fs = Promise.promisifyAll(require('fs'))
 const EventEmitter = require('events')
+const child = require('child_process')
 
 const mkdirp = require('mkdirp')
 const mkdirpAsync = Promise.promisify(mkdirp)
@@ -216,7 +217,9 @@ class Saving extends State {
     let tmpFile = path.join(tmpDir, UUID.v4())
     fs.writeFile(tmpFile, JSON.stringify(data, null, '  '), err => err
       ? callback(err)
-      : fs.rename(tmpFile, file, callback))
+      : fs.rename(tmpFile, file, err
+        ? callback(err)
+        : child.exec('sync', () => callback(null))))
   }
 
   destroy (callback) {
