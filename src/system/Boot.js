@@ -236,31 +236,34 @@ class EmbedVolumeCheck extends State {
         Object.assign(new Error('volume missing'), { code: 'EVOLUMEMISS'})))
     }
 
+    this.setState(Starting, volume)
+
     // validate uses.json && drives.json
-    let fruitmixDir = path.join(volume.mountpoint, this.ctx.conf.storage.fruitmixDir)
-    fs.exists(fruitmixDir, exists => {
-      if (!exists) { // safe
-        this.setState(Starting, volume)
-      } else {
-        // check users.json
-        this.validateUserFile(fruitmixDir, err => {
-          if (err) {
-            return process.nextTick(() => this.setState(EmbedVolumeFailed,
-              Object.assign(new Error('volume has users.json but data parse error'), { code: 'EVOLUMEFILE'})))
-          } else {
-            // check drives.json
-            this.validateDriveFile(fruitmixDir, err => {
-              if (err) {
-                return process.nextTick(() => this.setState(EmbedVolumeFailed,
-                  Object.assign(new Error('volume has drives.json but data parse error'), { code: 'EVOLUMEFILE'})))
-              } else { // all passed
-                this.setState(Starting, volume)
-              }
-            })
-          }
-        })
-      }
-    })
+    // let fruitmixDir = path.join(volume.mountpoint, this.ctx.conf.storage.fruitmixDir)
+
+    // fs.exists(fruitmixDir, exists => {
+    //   if (!exists) { // safe
+    //     this.setState(Starting, volume)
+    //   } else {
+    //     // check users.json
+    //     this.validateUserFile(fruitmixDir, err => {
+    //       if (err) {
+    //         return process.nextTick(() => this.setState(EmbedVolumeFailed,
+    //           Object.assign(new Error('volume has users.json but data parse error'), { code: 'EVOLUMEFILE'})))
+    //       } else {
+    //         // check drives.json
+    //         this.validateDriveFile(fruitmixDir, err => {
+    //           if (err) {
+    //             return process.nextTick(() => this.setState(EmbedVolumeFailed,
+    //               Object.assign(new Error('volume has drives.json but data parse error'), { code: 'EVOLUMEFILE'})))
+    //           } else { // all passed
+    //             this.setState(Starting, volume)
+    //           }
+    //         })
+    //       }
+    //     })
+    //   }
+    // })
   }
 
   mountSwapfile(mountpoint, callback) {
