@@ -217,7 +217,7 @@ class Saving extends State {
     let tmpFile = path.join(tmpDir, UUID.v4())
     fs.writeFile(tmpFile, JSON.stringify(data, null, '  '), err => err
       ? callback(err)
-      : fs.rename(tmpFile, file, err
+      : fs.rename(tmpFile, file, err => err
         ? callback(err)
         : child.exec('sync', () => callback(null))))
   }
