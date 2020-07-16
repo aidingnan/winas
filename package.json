@@ -50,7 +50,7 @@
     "ioctl": "^2.0.2",
     "jwt-simple": "^0.5.5",
     "line-by-line": "^0.1.6",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.19",
     "mkdirp": "^0.5.1",
     "moment": "^2.23.0",
     "morgan": "~1.9.1",
