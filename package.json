@@ -29,7 +29,7 @@
     "btest": "NODE_PATH=. NODE_ENV=dev_winas nodemon --ignore tmptest --ignore out --exec mocha --recursive --sort"
   },
   "dependencies": {
-    "bcrypt": "^3.0.3",
+    "bcrypt": "^5.0.0",
     "bcryptjs": "^2.4.3",
     "bluebird": "^3.5.3",
     "body-parser": "1.18.3",
