@@ -43,7 +43,7 @@
     "dicer": "^0.2.5",
     "express": "~4.16.4",
     "fast-deep-equal": "^2.0.1",
-    "file-type": "^10.7.0",
+    "file-type": "^16.5.4",
     "form-data": "^2.3.3",
     "fs-xattr": "^0.2.1",
     "get-args": "^2.0.0",
