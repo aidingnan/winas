@@ -41,7 +41,7 @@
     "deep-equal": "^1.0.1",
     "deep-freeze": "0.0.1",
     "dicer": "^0.2.5",
-    "express": "~4.16.4",
+    "express": "~4.17.3",
     "fast-deep-equal": "^2.0.1",
     "file-type": "^10.7.0",
     "form-data": "^2.3.3",
