@@ -56,7 +56,7 @@
     "morgan": "~1.9.1",
     "passport": "^0.4.0",
     "passport-http": "^0.3.0",
-    "passport-jwt": "^4.0.0",
+    "passport-jwt": "^4.0.1",
     "passport-strategy": "^1.0.0",
     "path-to-regexp": "^2.4.0",
     "read-chunk": "^3.0.0",
